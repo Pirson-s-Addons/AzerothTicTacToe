@@ -107,9 +107,7 @@ function ns.CreateAbout(info)
 
     y = SectionHeader(panel, y - rules:GetStringHeight() - 18, L.LINKS)
     y = UrlBox(panel, y, "GitHub", info.github)
-    if info.curseforge then -- todavía sin publicar en CurseForge
-        y = UrlBox(panel, y, "CurseForge", info.curseforge)
-    end
+    y = UrlBox(panel, y, "CurseForge", info.curseforge)
     y = SectionHeader(panel, y - 14, L.COMMANDS)
 
     for _, entry in ipairs(info.commands) do

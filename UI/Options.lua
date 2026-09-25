@@ -120,6 +120,7 @@ function ns.CreateOptions(ATT, commands)
         name = "Azeroth TicTacToe",
         logo = LOGO,
         github = "https://github.com/Pirson-s-Addons/AzerothTicTacToe",
+        curseforge = "https://www.curseforge.com/wow/addons/azeroth-tic-tac-toe",
         commands = commands,
     })
     local general = Settings.RegisterCanvasLayoutSubcategory(root, CreateGeneral(ATT), L.GENERAL)

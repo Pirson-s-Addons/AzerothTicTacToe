@@ -48,6 +48,8 @@
 
 ## Installation
 
+Install it from [CurseForge](https://www.curseforge.com/wow/addons/azeroth-tic-tac-toe), or by hand:
+
 1. Download the zip from the [latest release](https://github.com/Pirson-s-Addons/AzerothTicTacToe/releases/latest).
 2. Extract the `AzerothTicTacToe` folder into `World of Warcraft/_classic_beta_/Interface/AddOns/`.
 3. Restart WoW and enable the addon.
@@ -92,6 +94,8 @@ Commands follow your client's language (for example `/ttt aceptar` in Spanish); 
 - Traducido a 20 idiomas.
 
 ### Instalación
+
+Instálalo desde [CurseForge](https://www.curseforge.com/wow/addons/azeroth-tic-tac-toe), o a mano:
 
 1. Descarga el zip de la [última release](https://github.com/Pirson-s-Addons/AzerothTicTacToe/releases/latest).
 2. Extrae la carpeta `AzerothTicTacToe` en `World of Warcraft/_classic_beta_/Interface/AddOns/`.
