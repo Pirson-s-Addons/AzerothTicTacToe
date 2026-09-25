@@ -1,0 +1,121 @@
+## Interface: 16001
+## IconTexture: Interface\AddOns\AzerothTicTacToe\img\logo_attt
+## Title: |cffd597ffAzeroth TicTacToe|r
+
+# https://warcraft.wiki.gg/wiki/Addon_Categories
+## Category: Minigames
+## Category-deDE: Minispiele
+## Category-esES: Minijuegos
+## Category-esMX: Minijuegos
+## Category-frFR: Mini-jeux
+## Category-itIT: Minigiochi
+## Category-koKR: 미니게임
+## Category-ptBR: Minijogos
+## Category-ruRU: Мини-игры
+## Category-zhCN: 小游戏
+## Category-zhTW: 小遊戲
+## Category-plPL: Minigry
+## Category-svSE: Minispel
+## Category-noNO: Minispill
+## Category-csCZ: Minihry
+## Category-nlNL: Minigames
+## Category-roRO: Minijocuri
+## Category-huHU: Minijátékok
+## Category-elGR: Μίνι παιχνίδια
+## Category-ukUA: Міні-ігри
+## Category-daDK: Minispil
+## Category-fiFI: Minipelit
+## Category-skSK: Minihry
+## Category-bgBG: Мини игри
+## Category-hrHR: Mini-igre
+## Category-srRS: Mini-igre
+## Category-slSI: Mini igre
+## Category-ltLT: Mini žaidimai
+## Category-lvLV: Minispēles
+## Category-etEE: Minimängud
+## Category-idID: Permainan mini
+## Category-msMY: Permainan mini
+## Category-faIR: مینی‌گیم‌ها
+## Category-heIL: משחקונים
+## Category-bnBD: মিনি গেম
+## Category-urPK: منی گیمز
+## Category-taIN: சிறு விளையாட்டுகள்
+## Category-teIN: చిన్న ఆటలు
+## Category-trTR: Mini oyunlar
+## Category-jaJP: ミニゲーム
+## Category-arSA: ألعاب مصغرة
+## Category-hiIN: मिनी गेम
+## Category-thTH: มินิเกม
+## Category-viVN: Trò chơi nhỏ
+
+## Notes: |cFF33CCFFPlay Tic-Tac-Toe against another player, betting gold.|r
+## Notes-deDE: |cFF33CCFFSpiele Tic-Tac-Toe gegen einen anderen Spieler und setze Gold.|r
+## Notes-esES: |cFF33CCFFJuega al 3 en raya contra otro jugador, apostando oro.|r
+## Notes-esMX: |cFF33CCFFJuega al 3 en raya contra otro jugador, apostando oro.|r
+## Notes-frFR: |cFF33CCFFJouez au morpion contre un autre joueur en pariant de l'or.|r
+## Notes-itIT: |cFF33CCFFGioca a tris contro un altro giocatore, scommettendo oro.|r
+## Notes-koKR: |cFF33CCFF골드를 걸고 다른 플레이어와 틱택토를 즐기세요.|r
+## Notes-ptBR: |cFF33CCFFJogue jogo da velha contra outro jogador, apostando ouro.|r
+## Notes-ruRU: |cFF33CCFFИграйте в крестики-нолики против другого игрока на золото.|r
+## Notes-zhCN: |cFF33CCFF与其他玩家下井字棋，以金币作为赌注。|r
+## Notes-zhTW: |cFF33CCFF與其他玩家下井字棋，以金幣作為賭注。|r
+## Notes-plPL: |cFF33CCFFZagraj w kółko i krzyżyk z innym graczem, obstawiając złoto.|r
+## Notes-svSE: |cFF33CCFFSpela luffarschack mot en annan spelare och satsa guld.|r
+## Notes-noNO: |cFF33CCFFSpill tripp-trapp-tresko mot en annen spiller og sats gull.|r
+## Notes-csCZ: |cFF33CCFFHraj piškvorky proti jinému hráči a vsaď zlato.|r
+## Notes-nlNL: |cFF33CCFFSpeel boter-kaas-en-eieren tegen een andere speler en zet goud in.|r
+## Notes-roRO: |cFF33CCFFJoacă X și 0 împotriva altui jucător, pariind aur.|r
+## Notes-huHU: |cFF33CCFFJátssz amőbát egy másik játékos ellen, aranyban fogadva.|r
+## Notes-elGR: |cFF33CCFFΠαίξε τρίλιζα με άλλον παίκτη, ποντάροντας χρυσό.|r
+## Notes-ukUA: |cFF33CCFFГрай у хрестики-нулики з іншим гравцем на золото.|r
+## Notes-daDK: |cFF33CCFFSpil kryds og bolle mod en anden spiller og sats guld.|r
+## Notes-fiFI: |cFF33CCFFPelaa ristinollaa toista pelaajaa vastaan kullasta vedonlyöden.|r
+## Notes-skSK: |cFF33CCFFHraj piškvorky proti inému hráčovi a stav zlato.|r
+## Notes-bgBG: |cFF33CCFFИграй морски шах срещу друг играч със залог злато.|r
+## Notes-hrHR: |cFF33CCFFIgraj križić-kružić protiv drugog igrača uz okladu u zlatu.|r
+## Notes-srRS: |cFF33CCFFIgraj iks-oks protiv drugog igrača uz opkladu u zlatu.|r
+## Notes-slSI: |cFF33CCFFIgraj križce in krožce proti drugemu igralcu in stavi zlato.|r
+## Notes-ltLT: |cFF33CCFFŽaisk kryžiukus-nuliukus prieš kitą žaidėją, statydamas auksą.|r
+## Notes-lvLV: |cFF33CCFFSpēlē krustiņus un nullītes pret citu spēlētāju, liekot zeltu.|r
+## Notes-etEE: |cFF33CCFFMängi trips-traps-trulli teise mängija vastu kulla peale.|r
+## Notes-idID: |cFF33CCFFMain tic-tac-toe melawan pemain lain dengan taruhan emas.|r
+## Notes-msMY: |cFF33CCFFMain tic-tac-toe menentang pemain lain dengan pertaruhan emas.|r
+## Notes-faIR: |cFF33CCFFبا بازیکن دیگری دوز بازی کن و روی طلا شرط ببند.|r
+## Notes-heIL: |cFF33CCFFשחק איקס עיגול נגד שחקן אחר בהימור על זהב.|r
+## Notes-bnBD: |cFF33CCFFঅন্য খেলোয়াড়ের সাথে সোনা বাজি রেখে টিক-ট্যাক-টো খেলুন।|r
+## Notes-urPK: |cFF33CCFFدوسرے کھلاڑی کے خلاف سونے کی شرط پر ٹک ٹیک ٹو کھیلیں۔|r
+## Notes-taIN: |cFF33CCFFதங்கம் பந்தயம் கட்டி மற்றொரு வீரருடன் டிக்-டாக்-டோ விளையாடுங்கள்.|r
+## Notes-teIN: |cFF33CCFFబంగారం పందెం కాసి మరో ఆటగాడితో టిక్-టాక్-టో ఆడండి.|r
+## Notes-trTR: |cFF33CCFFBaşka bir oyuncuya karşı altın bahisle XOX oyna.|r
+## Notes-jaJP: |cFF33CCFFゴールドを賭けて他のプレイヤーと三目並べで対戦。|r
+## Notes-arSA: |cFF33CCFFالعب إكس-أو ضد لاعب آخر مع رهان بالذهب.|r
+## Notes-hiIN: |cFF33CCFFसोने की बाज़ी लगाकर दूसरे खिलाड़ी के खिलाफ़ टिक-टैक-टो खेलें।|r
+## Notes-thTH: |cFF33CCFFเล่นโอเอ็กซ์กับผู้เล่นคนอื่นโดยเดิมพันทอง|r
+## Notes-viVN: |cFF33CCFFChơi cờ ca-rô 3x3 với người chơi khác, cược bằng vàng.|r
+
+## Author: Pirson
+## Version: 1.00
+
+## SavedVariables: ATT_Data
+
+Locales/enUS.lua
+Locales/esES.lua
+Locales/deDE.lua
+Locales/frFR.lua
+Locales/itIT.lua
+Locales/ptBR.lua
+Locales/ruRU.lua
+Locales/koKR.lua
+Locales/zhCN.lua
+Locales/zhTW.lua
+Locales/plPL.lua
+Locales/svSE.lua
+Locales/noNO.lua
+Locales/trTR.lua
+Locales/jaJP.lua
+Locales/arSA.lua
+Locales/hiIN.lua
+Locales/thTH.lua
+Locales/viVN.lua
+Locales/csCZ.lua
+Core/AzerothTicTacToe.lua
