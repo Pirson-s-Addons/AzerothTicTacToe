@@ -26,6 +26,34 @@ local MINIMAP_RADIUS = 80
 local TEX_HORDE = "Interface\\Icons\\INV_BannerPVP_01"
 local TEX_ALLIANCE = "Interface\\Icons\\INV_BannerPVP_02"
 
+-- Versión del protocolo de mensajes. La 1.00 (sin número) colocaba fichas
+-- sin moverlas: no puede jugar contra esta.
+local PROTOCOL = "2"
+
+-- 3 en raya clásico: 3 fichas por jugador. Primero se colocan; con las 3 en el
+-- tablero, cada turno se mueve una a una casilla libre contigua por una línea
+-- (fila, columna o diagonal). No hay empate: solo tablas si las piden los dos.
+local PIECES = 3
+local ADJACENT = {
+    [1] = { [2] = true, [4] = true, [5] = true },
+    [2] = { [1] = true, [3] = true, [5] = true },
+    [3] = { [2] = true, [5] = true, [6] = true },
+    [4] = { [1] = true, [5] = true, [7] = true },
+    [5] = { [1] = true, [2] = true, [3] = true, [4] = true, [6] = true, [7] = true, [8] = true, [9] = true },
+    [6] = { [3] = true, [5] = true, [9] = true },
+    [7] = { [4] = true, [5] = true, [8] = true },
+    [8] = { [5] = true, [7] = true, [9] = true },
+    [9] = { [5] = true, [6] = true, [8] = true },
+}
+
+-- Si al rival le toca y no mueve en este tiempo (se ha desconectado o se ha
+-- ido), la partida caduca: nadie gana ni pierde. L["RULES"] dice "5 minutos".
+local TURN_TIMEOUT = 300
+
+-- Ajustes del panel de opciones (UI/Options.lua), en ATT_Data.settings
+local DEFAULTS = { minimap = true, sound = true, challenges = true, scale = 1 }
+ns.DEFAULTS = DEFAULTS
+
 ATT.prefix = "AZTICTACTOE"
 ATT.gameActive = false
 ATT.opponent = nil
@@ -34,6 +62,10 @@ ATT.isMyTurn = false
 ATT.isHost = false
 ATT.board = { "", "", "", "", "", "", "", "", "" }
 ATT.pendingInvite = nil
+ATT.pendingStart = nil -- he aceptado un reto y espero el START del anfitrión
+ATT.selected = nil     -- ficha elegida para mover
+ATT.paidSent = {}      -- [rival] = importe del aviso de pago que espera su respuesta
+ATT.paidRequest = nil  -- aviso de pago del rival que espera la mía
 ATT.cells = {}
 
 -- Variables persistentes: se inicializan en PLAYER_LOGIN. Aquí todavía no
@@ -55,6 +87,52 @@ local function SameName(a, b)
     return a ~= nil and b ~= nil and a:lower() == b:lower()
 end
 
+-- Los comandos van en el idioma del cliente ("/ttt aceptar"); el inglés vale siempre
+local function IsCommand(cmd, localized, english)
+    return cmd == localized:lower() or cmd == english
+end
+
+local function Command(...)
+    return "/ttt " .. table.concat({ ... }, " ")
+end
+
+-- Las apuestas y las deudas van en cobre, la unidad del juego: 1 oro = 100
+-- plata = 10000 cobre. Se muestran con los iconos de moneda del propio juego.
+local COIN = "|TInterface\\MoneyFrame\\UI-%sIcon:12:12:2:0|t"
+local function Money(copper)
+    local g, s, c = math.floor(copper / 10000), math.floor(copper / 100) % 100, copper % 100
+    local parts = {}
+    if g > 0 then parts[#parts + 1] = g .. COIN:format("Gold") end
+    if s > 0 then parts[#parts + 1] = s .. COIN:format("Silver") end
+    if c > 0 or #parts == 0 then parts[#parts + 1] = c .. COIN:format("Copper") end
+    return table.concat(parts, " ")
+end
+ATT.Money = Money
+
+-----------------------------------------
+-- REGLAS
+-----------------------------------------
+local function CountPieces(board, faction)
+    local n = 0
+    for i = 1, 9 do if board[i] == faction then n = n + 1 end end
+    return n
+end
+
+-- from == nil: colocar una ficha nueva. Solo mientras no estén las 3 puestas.
+local function IsLegalMove(board, faction, from, to)
+    if not to or to < 1 or to > 9 or board[to] ~= "" then return false end
+    if CountPieces(board, faction) < PIECES then return from == nil end
+    return from ~= nil and board[from] == faction and ADJACENT[from][to] == true
+end
+
+function ATT:MyFaction()
+    return self.isHost and "Horde" or "Alliance"
+end
+
+function ATT:OpponentFaction()
+    return self.isHost and "Alliance" or "Horde"
+end
+
 -----------------------------------------
 -- RESET TABLERO
 -----------------------------------------
@@ -64,14 +142,57 @@ function ATT:ResetBoard()
         cell.icon:SetTexture(nil)
         -- No ocultamos el border porque es el fondo industrial de la casilla
     end
+    self:Select(nil)
     if self.TurnText then self.TurnText:SetText(L["WAITING_TURN"]) end
+end
+
+-- Ficha elegida para mover: su casilla se tiñe de oro
+function ATT:Select(index)
+    self.selected = index
+    for i, cell in ipairs(self.cells) do
+        if i == index then
+            cell.border:SetVertexColor(1, 0.82, 0, 1)
+        else
+            cell.border:SetVertexColor(0.5, 0.5, 0.5, 0.8)
+        end
+    end
+end
+
+-- Cambia el turno. Cuando pasa al rival empieza a correr su tiempo.
+function ATT:SetTurn(mine)
+    self.isMyTurn = mine
+    if not mine then self.waitingSince = GetTime() end
+    self:UpdateTurnText()
+end
+
+function ATT:UpdateTurnText(secondsLeft)
+    if not self.isMyTurn then
+        local text = L["TURN_OF"]:format(self.opponent)
+        if secondsLeft then
+            text = text .. (" (%d:%02d)"):format(math.floor(secondsLeft / 60), secondsLeft % 60)
+        end
+        self.TurnText:SetText("|cffff0000" .. text .. "|r")
+        return
+    end
+    local placed = CountPieces(self.board, self:MyFaction())
+    if placed < PIECES then
+        self.TurnText:SetText("|cff00ff00" .. L["PLACE_PIECE"]:format(PIECES - placed) .. "|r")
+    else
+        self.TurnText:SetText("|cff00ff00" .. L["MOVE_PIECE"] .. "|r")
+    end
 end
 
 -----------------------------------------
 -- HELPER MENSAJES Y SONIDOS
 -----------------------------------------
 function ATT:PlaySound(soundID)
-    PlaySound(soundID, "Master")
+    if ATT_Data.settings.sound then PlaySound(soundID, "Master") end
+end
+
+function ATT:ApplySettings()
+    local db = ATT_Data.settings
+    if self.MinimapIcon then self.MinimapIcon:SetShown(db.minimap) end
+    if self.MainFrame then self.MainFrame:SetScale(db.scale) end
 end
 
 function ATT:SendMessage(message, target)
@@ -98,7 +219,17 @@ function ATT:PLAYER_LOGIN()
     ATT_Data = ATT_Data or {}
     ATT_Data.rankings = ATT_Data.rankings or {} -- { ["Player"] = wins }
     ATT_Data.debts = ATT_Data.debts or {}       -- { ["Player"] = amount } (positivo me deben, negativo debo)
-    ATT_Data.history = ATT_Data.history or {}   -- { { date=T, rival=R, result=W/L/D, gold=G } }
+    ATT_Data.history = ATT_Data.history or {}   -- { { date=T, rival=R, result=W/L/D, gold=cobre } }
+    ATT_Data.settings = ATT_Data.settings or {}
+    for key, value in pairs(DEFAULTS) do
+        if ATT_Data.settings[key] == nil then ATT_Data.settings[key] = value end
+    end
+    -- La 1.00 guardaba oro entero; desde la 1.01 todo va en cobre
+    if not ATT_Data.copper then
+        for name, amount in pairs(ATT_Data.debts) do ATT_Data.debts[name] = amount * 10000 end
+        for _, entry in ipairs(ATT_Data.history) do entry.gold = (entry.gold or 0) * 10000 end
+        ATT_Data.copper = true
+    end
 
     -- Devuelve un enum (0 = Success), no un booleano
     if C_ChatInfo.RegisterAddonMessagePrefix(self.prefix) ~= Enum.RegisterAddonMessagePrefixResult.Success then
@@ -113,6 +244,16 @@ function ATT:PLAYER_LOGIN()
     self:CreateMainFrame()
     self:CreateBoard()
     self:CreateMinimapIcon()
+    self.optionsID = ns.CreateOptions(self, {
+        { "/ttt", L["CMD_DESC_OPEN"] },
+        { L["USAGE_INVITE"], L["CMD_DESC_CHALLENGE"] },
+        { Command(L["CMD_ACCEPT"]), L["CMD_DESC_ACCEPT"] },
+        { Command(L["CMD_CANCEL"]), L["CMD_DESC_CANCEL"] },
+        { Command(L["CMD_ACCEPT"], L["CMD_PAID"]), L["CMD_DESC_ACCEPT_PAID"] },
+        { Command(L["CMD_CANCEL"], L["CMD_PAID"]), L["CMD_DESC_CANCEL_PAID"] },
+    })
+    self:ApplySettings()
+    C_Timer.NewTicker(1, function() ATT:CheckTimeout(GetTime()) end)
 
     print("|cff00ff00[ATT]: " .. L["LOADED"] .. "|r")
 end
@@ -259,23 +400,37 @@ function ATT:CreateRankingFrame()
     nameBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
 
     -- Input Oro
-    local goldBox = CreateFrame("EditBox", "ATT_GoldInput", frame, "InputBoxTemplate")
-    goldBox:SetSize(60, 20)
-    goldBox:SetPoint("LEFT", nameBox, "RIGHT", 15, 0)
-    goldBox:SetAutoFocus(false)
-    goldBox:SetNumeric(true)
-    goldBox:SetText("0")
+    -- Apuesta: oro, plata y cobre, cada uno con su icono
+    local function CoinBox(name, anchor, width, maxLetters, coin)
+        local box = CreateFrame("EditBox", name, frame, "InputBoxTemplate")
+        box:SetSize(width, 20)
+        box:SetPoint("LEFT", anchor, "RIGHT", 10, 0)
+        box:SetAutoFocus(false)
+        box:SetNumeric(true)
+        box:SetMaxLetters(maxLetters)
+        box:SetText("0")
+        box.icon = frame:CreateTexture(nil, "OVERLAY")
+        box.icon:SetSize(13, 13)
+        box.icon:SetPoint("LEFT", box, "RIGHT", 1, 0)
+        box.icon:SetTexture("Interface\\MoneyFrame\\UI-" .. coin .. "Icon")
+        return box
+    end
+    nameBox:SetWidth(105)
+    local goldBox = CoinBox("ATT_GoldInput", nameBox, 42, 6, "Gold")
+    local silverBox = CoinBox("ATT_SilverInput", goldBox.icon, 24, 2, "Silver")
+    local copperBox = CoinBox("ATT_CopperInput", silverBox.icon, 24, 2, "Copper")
 
     -- Botón Retar
     local challengeBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    challengeBtn:SetSize(80, 22)
-    challengeBtn:SetPoint("LEFT", goldBox, "RIGHT", 10, 0)
+    challengeBtn:SetSize(70, 22)
+    challengeBtn:SetPoint("LEFT", copperBox.icon, "RIGHT", 8, 0)
     challengeBtn:SetText(L["CHALLENGE"])
     challengeBtn:SetScript("OnClick", function()
         local name = nameBox:GetText()
-        local gold = tonumber(goldBox:GetText()) or 0
+        local coins = (tonumber(goldBox:GetText()) or 0) .. " " .. (tonumber(silverBox:GetText()) or 0)
+            .. " " .. (tonumber(copperBox:GetText()) or 0)
         if name ~= "" and name ~= L["NAME"] then
-            ATT:HandleSlashCommand(name .. " " .. gold)
+            ATT:HandleSlashCommand(name .. " " .. coins)
             ATT:PlaySound(SND_CLICK)
         end
     end)
@@ -329,8 +484,14 @@ local function AcquireDebtRow(content, i)
     row.clearBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
     row.clearBtn:SetSize(65, 18)
     row.clearBtn:SetPoint("RIGHT", 0, 0)
-    row.clearBtn:SetText(L["SETTLED"])
     row.clearBtn:SetNormalFontObject("GameFontNormalSmall")
+    row.clearBtn:SetDisabledFontObject("GameFontDisableSmall")
+    row.clearBtn:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(L["PAID_TOOLTIP"]:format(self.rival or "?"), 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    row.clearBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     row.tradeBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
     row.tradeBtn:SetSize(60, 18)
@@ -382,11 +543,15 @@ function ATT:UpdateRankingData()
 
             local color = (amount > 0) and "|cff00ff00" or "|cffff0000"
             local label = (amount > 0) and L["OWES_YOU"] or L["YOU_OWE"]
-            row.text:SetText(name .. " " .. color .. label .. " " .. abs(amount) .. "g|r")
+            row.text:SetText(name .. " " .. color .. label .. " " .. Money(abs(amount)) .. "|r")
 
+            -- "Pagado" no borra nada: avisa al rival, y solo su confirmación salda la deuda
+            row.clearBtn.rival = name
+            local pending = ATT.paidSent[name] ~= nil
+            row.clearBtn:SetText(pending and L["PENDING"] or L["PAID"])
+            row.clearBtn:SetEnabled(not pending)
             row.clearBtn:SetScript("OnClick", function()
-                ATT_Data.debts[name] = 0
-                ATT:UpdateRankingData()
+                ATT:RequestPayment(name)
                 ATT:PlaySound(SND_HOVER)
             end)
 
@@ -424,7 +589,7 @@ function ATT:UpdateRankingData()
         local resultColor = (entry.result == "W") and "|cff00ff00" .. L["RESULT_WIN"] .. "|r"
             or (entry.result == "L") and "|cffff0000" .. L["RESULT_LOSS"] .. "|r"
             or "|cffffff00" .. L["RESULT_DRAW"] .. "|r"
-        table.insert(hist, "   " .. entry.date .. " " .. resultColor .. " vs " .. entry.rival .. " (" .. entry.gold .. "g)")
+        table.insert(hist, "   " .. entry.date .. " " .. resultColor .. " vs " .. entry.rival .. " (" .. Money(entry.gold) .. ")")
         count = count + 1
     end
     if count == 0 then
@@ -439,29 +604,46 @@ function ATT:UpdateRankingData()
 end
 
 function ATT:HandleSlashCommand(msg)
-    local args = {}
-    for word in msg:gmatch("%S+") do table.insert(args, word) end
+    msg = (msg or ""):match("^%s*(.-)%s*$")
 
-    if not args[1] then
+    if msg == "" then
+        if self.optionsID then Settings.OpenToCategory(self.optionsID) end
         print(L["USAGE"])
         print(L["USAGE_INVITE"])
-        print("/ttt accept")
-        print("/ttt cancel")
+        print(Command(L["CMD_ACCEPT"]))
+        print(Command(L["CMD_CANCEL"]))
+        print(Command(L["CMD_ACCEPT"], L["CMD_PAID"]))
+        print(Command(L["CMD_CANCEL"], L["CMD_PAID"]))
         return
     end
 
-    local command = string.lower(args[1])
+    local cmd = string.lower(msg)
 
-    if command == "accept" then
+    if IsCommand(cmd, L["CMD_ACCEPT"], "accept") then
         self:AcceptInvite()
         return
-    elseif command == "cancel" then
+    elseif IsCommand(cmd, L["CMD_CANCEL"], "cancel") then
         self:CancelInvite()
+        return
+    elseif IsCommand(cmd, L["CMD_ACCEPT"] .. " " .. L["CMD_PAID"], "accept paid") then
+        self:AnswerPayment(true)
+        return
+    elseif IsCommand(cmd, L["CMD_CANCEL"] .. " " .. L["CMD_PAID"], "cancel paid") then
+        self:AnswerPayment(false)
         return
     end
 
-    local playerName = args[1]
-    local gold = math.max(0, math.floor(tonumber(args[2]) or 0))
+    -- En Forever los personajes llevan nombre y apellido ("Caudillo Jr"): todo
+    -- es el nombre salvo la apuesta, los números del final: oro, plata y cobre
+    -- (opcionales, en ese orden). Los nombres no llevan cifras.
+    local playerName, coins = msg, {}
+    for _ = 1, 3 do
+        local rest, n = playerName:match("^(.-)%s+(%d+)$")
+        if not rest then break end
+        table.insert(coins, 1, tonumber(n))
+        playerName = rest
+    end
+    local gold = (coins[1] or 0) * 10000 + (coins[2] or 0) * 100 + (coins[3] or 0)
 
     if SameName(playerName, GetMyName()) then
         print(L["NOT_YOURSELF"])
@@ -472,7 +654,7 @@ function ATT:HandleSlashCommand(msg)
         return
     end
 
-    print(L["SENDING_INVITE"]:format(playerName, gold))
+    print(L["SENDING_INVITE"]:format(playerName, Money(gold)))
     self:SendInvite(playerName, gold)
 end
 
@@ -480,7 +662,7 @@ end
 -- INVITACIONES
 -----------------------------------------
 function ATT:SendInvite(target, gold)
-    self:SendMessage("INVITE:" .. GetMyName() .. ":" .. gold, target)
+    self:SendMessage("INVITE:" .. GetMyName() .. ":" .. gold .. ":" .. PROTOCOL, target)
     self.opponent = target
     self.betAmount = gold
     self.isHost = true
@@ -495,9 +677,11 @@ function ATT:AcceptInvite()
         print("|cffff0000[ATT]: " .. L["FINISH_BEFORE_ACCEPT"] .. "|r")
         return
     end
-    self:SendMessage("ACCEPT:" .. GetMyName(), self.pendingInvite.host)
-    self:StartGame(self.pendingInvite.host, self.pendingInvite.gold, false)
+    -- La partida empieza cuando el anfitrión echa la moneda (mensaje START)
+    self:SendMessage("ACCEPT:" .. GetMyName() .. ":" .. PROTOCOL, self.pendingInvite.host)
+    self.pendingStart = self.pendingInvite
     self.pendingInvite = nil
+    print("|cffffff00[ATT]: " .. L["WAITING_START"]:format(self.pendingStart.host) .. "|r")
 end
 
 function ATT:CancelInvite()
@@ -510,15 +694,95 @@ function ATT:CancelInvite()
     self.pendingInvite = nil
 end
 
-function ATT:CancelGame()
-    if self.gameActive then
-        if self.opponent then
-            self:SendMessage("CANCEL_GAME:" .. GetMyName(), self.opponent)
-        end
-        print("|cffff0000[ATT]: " .. L["GAME_CANCELLED"] .. "|r")
+-----------------------------------------
+-- RENDIRSE Y TABLAS
+-----------------------------------------
+StaticPopupDialogs["ATT_SURRENDER"] = {
+    text = "%s",
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function() ATT:Surrender() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+}
+
+function ATT:ConfirmSurrender()
+    if not self.gameActive then return end
+    local text = L["SURRENDER_CONFIRM"]:format(self.opponent)
+    if self.betAmount > 0 then
+        text = text .. "\n" .. L["POT"] .. " " .. Money(self.betAmount)
     end
-    self.gameActive = false
-    if self.MainFrame then self.MainFrame:Hide() end
+    StaticPopup_Show("ATT_SURRENDER", text)
+end
+
+-- Rendirse es perder, con apuesta incluida: cerrar la ventana no libra a nadie
+function ATT:Surrender()
+    if not self.gameActive then return end
+    self:SendMessage("FORFEIT:" .. GetMyName(), self.opponent)
+    print("|cffff0000[ATT]: " .. L["SURRENDERED"] .. "|r")
+    self:EndGame("L")
+end
+
+-- Tablas solo si las piden los dos: cada uno pulsa una vez y no se puede retirar
+function ATT:OfferDraw()
+    if not self.gameActive or self.drawMine then return end
+    self.drawMine = true
+    self:SendMessage("DRAW:" .. GetMyName(), self.opponent)
+    if self.drawTheirs then
+        self:EndGame("D")
+    else
+        print("|cffffff00[ATT]: " .. L["DRAW_YOU_OFFERED"]:format(self.opponent) .. "|r")
+        self:UpdateDrawButton()
+    end
+end
+
+function ATT:UpdateDrawButton()
+    local btn = self.DrawButton
+    if not btn then return end
+    local votes = (self.drawMine and 1 or 0) + (self.drawTheirs and 1 or 0)
+    btn:SetText(votes == 0 and L["DRAW_OFFER"] or (L["DRAW_OFFER"] .. " " .. votes .. "/2"))
+    btn:SetEnabled(self.gameActive and not self.drawMine)
+end
+
+function ATT:ShowGameButtons(shown)
+    if self.SurrenderButton then self.SurrenderButton:SetShown(shown) end
+    if self.DrawButton then self.DrawButton:SetShown(shown) end
+    self:UpdateDrawButton()
+end
+
+-----------------------------------------
+-- DEUDAS: AVISO DE PAGO
+-----------------------------------------
+-- Quien pulsa "Pagado" solo avisa. La deuda sale de los dos libros cuando el
+-- otro lo confirma; si lo niega, se queda en los dos. El importe viaja con
+-- signo desde el punto de vista del que avisa (+ = el rival me debe).
+function ATT:RequestPayment(name)
+    local amount = ATT_Data.debts[name] or 0
+    if amount == 0 or self.paidSent[name] then return end
+    self.paidSent[name] = amount
+    self:SendMessage("PAID_REQ:" .. amount, name)
+    print("|cffffff00[ATT]: " .. L["PAID_SENT"]:format(name, Money(abs(amount))) .. "|r")
+    self:UpdateRankingData()
+end
+
+function ATT:AnswerPayment(accepted)
+    local req = self.paidRequest
+    if not req then
+        print("|cffff0000[ATT]: " .. L["NO_PAID_REQUEST"] .. "|r")
+        return
+    end
+    self.paidRequest = nil
+    if accepted then
+        -- Mi saldo con él es el opuesto al suyo: sumar su importe lo lleva a 0
+        ATT_Data.debts[req.from] = (ATT_Data.debts[req.from] or 0) + req.amount
+        self:SendMessage("PAID_OK:" .. req.amount, req.from)
+        print("|cff00ff00[ATT]: " .. L["PAID_YOU_ACCEPTED"]:format(req.from) .. "|r")
+    else
+        self:SendMessage("PAID_NO:" .. req.amount, req.from)
+        print("|cffff0000[ATT]: " .. L["PAID_YOU_REJECTED"]:format(req.from) .. "|r")
+    end
+    self:UpdateRankingData()
 end
 
 -----------------------------------------
@@ -533,20 +797,48 @@ function ATT:CHAT_MSG_ADDON(prefix, message, channel, sender)
     local parts = {}
     for part in message:gmatch("([^:]+)") do table.insert(parts, part) end
     local msgType = parts[1]
+    -- Todo lo de la partida solo vale si viene del rival de la partida en curso
+    local fromOpponent = self.gameActive and SameName(sender, self.opponent)
 
     if msgType == "INVITE" then
         -- El anfitrión es quien envía, no el nombre que viaja en el mensaje
         local host = sender
         local gold = tonumber(parts[3])
         if not gold or gold < 0 then return end
-        print("|cffffff00[ATT]: " .. L["CHALLENGED"]:format(host, gold) .. "|r")
+        if parts[4] ~= PROTOCOL then
+            print("|cffff0000[ATT]: " .. L["OLD_VERSION"]:format(host) .. "|r")
+            self:SendMessage("CANCEL:" .. GetMyName(), host)
+            return
+        end
+        if not ATT_Data.settings.challenges then
+            print("|cffff8000[ATT]: " .. L["AUTO_DECLINED"]:format(host) .. "|r")
+            self:SendMessage("CANCEL:" .. GetMyName(), host)
+            return
+        end
+        print("|cffffff00[ATT]: " .. L["CHALLENGED"]:format(host, Money(gold)) .. "|r")
         print("|cff888888\"" .. L["TAUNT"] .. "\"|r")
-        print(L["TYPE_ACCEPT"]:format("|cff00ff00/ttt accept|r", "|cffff0000/ttt cancel|r"))
+        print(L["TYPE_ACCEPT"]:format("|cff00ff00" .. Command(L["CMD_ACCEPT"]) .. "|r",
+            "|cffff0000" .. Command(L["CMD_CANCEL"]) .. "|r"))
         self.pendingInvite = { host = host, gold = gold }
     elseif msgType == "ACCEPT" then
         if not self.isHost or self.gameActive or not SameName(sender, self.opponent) then return end
+        if parts[3] ~= PROTOCOL then
+            -- Un 1.00 ya ha empezado su partida al aceptar: se la cerramos
+            print("|cffff0000[ATT]: " .. L["OLD_VERSION"]:format(sender) .. "|r")
+            self:SendMessage("CANCEL_GAME:" .. GetMyName(), sender)
+            self.opponent, self.isHost = nil, false
+            return
+        end
         print("|cff00ff00" .. L["ACCEPTED"]:format(sender) .. "|r")
-        self:StartGame(sender, self.betAmount, true)
+        -- A cara o cruz: empezar colocando da ventaja, así que no siempre al que reta
+        local hostStarts = math.random(2) == 1
+        self:SendMessage("START:" .. (hostStarts and "host" or "guest"), sender)
+        self:StartGame(sender, self.betAmount, true, hostStarts)
+    elseif msgType == "START" then
+        local pending = self.pendingStart
+        if not pending or self.gameActive or not SameName(sender, pending.host) then return end
+        self.pendingStart = nil
+        self:StartGame(pending.host, pending.gold, false, parts[2] == "guest")
     elseif msgType == "CANCEL" then
         -- Solo el retado al que invité puede rechazarla
         if not self.isHost or self.gameActive or not SameName(sender, self.opponent) then return end
@@ -554,61 +846,128 @@ function ATT:CHAT_MSG_ADDON(prefix, message, channel, sender)
         self.opponent = nil
         self.isHost = false
     elseif msgType == "CANCEL_GAME" then
-        if not self.gameActive or sender ~= self.opponent then return end
+        -- Solo lo envía la 1.00
+        if not fromOpponent then return end
         print("|cffff0000[ATT]: " .. L["OPPONENT_LEFT"]:format(sender) .. "|r")
         self.gameActive = false
+        self:ShowGameButtons(false)
         if self.MainFrame then self.MainFrame:Hide() end
+    elseif msgType == "EXPIRE" then
+        -- El rival dejó de esperar mi jugada: la partida se anula en los dos lados
+        if not fromOpponent then return end
+        print("|cffff8000[ATT]: " .. L["GAME_EXPIRED_YOU"]:format(sender) .. "|r")
+        self:EndGame("X")
+    elseif msgType == "FORFEIT" then
+        if not fromOpponent then return end
+        print("|cff00ff00[ATT]: " .. L["OPPONENT_SURRENDERED"]:format(sender) .. "|r")
+        self:EndGame("W")
+    elseif msgType == "DRAW" then
+        if not fromOpponent or self.drawTheirs then return end
+        self.drawTheirs = true
+        if self.drawMine then
+            self:EndGame("D")
+        else
+            print("|cffffff00[ATT]: " .. L["DRAW_OFFERED"]:format(sender, L["DRAW_OFFER"]) .. "|r")
+            self:UpdateDrawButton()
+            self:PlaySound(SND_WAIT)
+        end
     elseif msgType == "MOVE" then
-        -- Solo el rival de la partida en curso mueve, y solo cuando no es mi turno
-        if not self.gameActive or sender ~= self.opponent or self.isMyTurn then return end
+        -- Solo el rival mueve, solo en su turno y solo jugadas legales. La
+        -- facción es la suya según la partida, no la que diga el mensaje.
+        if not fromOpponent or self.isMyTurn then return end
 
-        local index = tonumber(parts[2])
-        local faction = parts[3]
-        if not index or index < 1 or index > 9 or not faction then return end
-        if self.board[index] ~= "" then return end
+        local to = tonumber(parts[2])
+        local from = tonumber(parts[4])
+        if from == 0 then from = nil end
+        local faction = self:OpponentFaction()
+        if not IsLegalMove(self.board, faction, from, to) then return end
 
-        self:SetCellIcon(index, (faction == "Horde") and TEX_HORDE or TEX_ALLIANCE)
-        self.board[index] = faction
+        self:ApplyMove(faction, from, to)
 
         -- El rival acaba de mover: si esto cierra la partida, ha ganado él
         if self:CheckWinner(false) then return end
 
-        self.isMyTurn = true
-        self.TurnText:SetText("|cff00ff00" .. L["YOUR_TURN"] .. "|r")
+        self:SetTurn(true)
         self:PlaySound(SND_CLICK)
+    elseif msgType == "PAID_REQ" then
+        local amount = tonumber(parts[2])
+        if not amount or amount == 0 then return end
+        self.paidRequest = { from = sender, amount = amount }
+        print("|cffffff00[ATT]: " .. L["PAID_REQUEST"]:format(sender, Money(abs(amount))) .. "|r")
+        local mine = ATT_Data.debts[sender] or 0
+        if mine ~= -amount then
+            print("|cffff8000[ATT]: " .. L["PAID_MISMATCH"]:format(Money(abs(mine))) .. "|r")
+        end
+        print(L["PAID_HOW"]:format("|cff00ff00" .. Command(L["CMD_ACCEPT"], L["CMD_PAID"]) .. "|r",
+            "|cffff0000" .. Command(L["CMD_CANCEL"], L["CMD_PAID"]) .. "|r"))
+        self:PlaySound(SND_WAIT)
+    elseif msgType == "PAID_OK" or msgType == "PAID_NO" then
+        -- Solo cuenta la respuesta al aviso que yo mandé, por el mismo importe
+        local amount = tonumber(parts[2])
+        if not amount or self.paidSent[sender] ~= amount then return end
+        self.paidSent[sender] = nil
+        if msgType == "PAID_OK" then
+            ATT_Data.debts[sender] = (ATT_Data.debts[sender] or 0) - amount
+            print("|cff00ff00[ATT]: " .. L["PAID_ACCEPTED"]:format(sender, Money(abs(amount))) .. "|r")
+        else
+            print("|cffff0000[ATT]: " .. L["PAID_REJECTED"]:format(sender, Money(abs(amount))) .. "|r")
+        end
+        self:UpdateRankingData()
     end
+end
+
+-----------------------------------------
+-- TIEMPO POR TURNO
+-----------------------------------------
+-- Solo cuenta el turno del rival: el mío lo vigila su cliente
+function ATT:CheckTimeout(now)
+    if not self.gameActive or self.isMyTurn then return end
+    local left = TURN_TIMEOUT - (now - self.waitingSince)
+    if left > 0 then
+        self:UpdateTurnText(math.ceil(left))
+        return
+    end
+    self:SendMessage("EXPIRE:" .. GetMyName(), self.opponent)
+    print("|cffff8000[ATT]: " .. L["GAME_EXPIRED"]:format(self.opponent, TURN_TIMEOUT / 60) .. "|r")
+    self:EndGame("X")
 end
 
 -----------------------------------------
 -- INICIAR PARTIDA
 -----------------------------------------
-function ATT:StartGame(opponent, gold, iAmHost)
+function ATT:StartGame(opponent, gold, iAmHost, iStart)
     local cleanOpponent = ShortName(opponent)
 
     self.gameActive = true
     self.opponent = cleanOpponent
     self.betAmount = gold
-    self.isMyTurn = iAmHost
     self.isHost = iAmHost
+    self.drawMine, self.drawTheirs = false, false
     self:ResetBoard()
     self.MainFrame:Show()
-    self.BetText:SetText(L["POT"] .. " |cffffffff" .. gold .. "|r |TInterface\\MoneyFrame\\UI-GoldIcon:14:14:0:0|t")
-    if self.isMyTurn then
-        self.TurnText:SetText("|cff00ff00" .. L["YOUR_TURN_FIRST"] .. "|r")
-        self:PlaySound(SND_OPEN)
-    else
-        self.TurnText:SetText("|cffff0000" .. L["TURN_OF"]:format(cleanOpponent) .. "|r")
-        self:PlaySound(SND_WAIT)
-    end
+    self:ShowGameButtons(true)
+    self.BetText:SetText(L["POT"] .. " |cffffffff" .. Money(gold) .. "|r")
+    self:SetTurn(iStart)
+    self:PlaySound(iStart and SND_OPEN or SND_WAIT)
     print("|cffffd700[ATT]: " .. L["GAME_STARTED"]:format(cleanOpponent) .. "|r")
+    print("|cffffd700[ATT]: " .. L["COIN_TOSS"]:format(iStart and GetMyName() or cleanOpponent) .. "|r")
 end
 
 -----------------------------------------
 -- CREAR INTERFAZ (GOBLIN STYLE)
 -----------------------------------------
+local function AddTooltip(button, text)
+    button:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(text, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    button:SetScript("OnLeave", function() GameTooltip:Hide() end)
+end
+
 function ATT:CreateMainFrame()
     local frame = CreateFrame("Frame", "ATT_MainFrame", UIParent, "BackdropTemplate")
-    frame:SetSize(450, 550)
+    frame:SetSize(450, 580)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -637,13 +996,12 @@ function ATT:CreateMainFrame()
         insets = { left = 5, right = 5, top = 5, bottom = 5 }
     })
 
-    -- Botón Cerrar
+    -- Cerrar solo oculta el tablero: la partida sigue (se reabre desde el
+    -- minimapa). Para dejarla está el botón Rendirse.
     local closeBtn = CreateFrame("Button", "ATT_CloseButton", frame, "UIPanelCloseButton")
     closeBtn:SetPoint("TOPRIGHT", -5, -5)
     closeBtn:SetFrameLevel(frame:GetFrameLevel() + 20)
-    closeBtn:SetScript("OnClick", function()
-        ATT:CancelGame()
-    end)
+    closeBtn:SetScript("OnClick", function() frame:Hide() end)
     self.CloseButton = closeBtn
 
     -- Titulo con sombra y color oro
@@ -660,14 +1018,34 @@ function ATT:CreateMainFrame()
     -- Texto apuesta (Estilo Casino)
     frame.BetText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     frame.BetText:SetPoint("TOP", frame.subtitle, "BOTTOM", 0, -15)
-    frame.BetText:SetText(L["POT"] .. " |cffffffff0|r |TInterface\\MoneyFrame\\UI-GoldIcon:14:14:0:0|t")
+    frame.BetText:SetText(L["POT"] .. " |cffffffff" .. Money(0) .. "|r")
 
     -- Texto turno
     frame.TurnText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    frame.TurnText:SetPoint("BOTTOM", 0, 35)
+    frame.TurnText:SetPoint("BOTTOM", 0, 50)
+    frame.TurnText:SetWidth(400)
     frame.TurnText:SetText(L["WAITING_OPPONENT"])
     self.TurnText = frame.TurnText
     self.BetText = frame.BetText
+
+    -- Rendirse (con confirmación) y Tablas, solo durante una partida
+    local surrender = CreateFrame("Button", "ATT_SurrenderButton", frame, "UIPanelButtonTemplate")
+    surrender:SetSize(120, 24)
+    surrender:SetPoint("BOTTOMLEFT", 40, 18)
+    surrender:SetText(L["SURRENDER"])
+    surrender:SetScript("OnClick", function() ATT:ConfirmSurrender() end)
+    AddTooltip(surrender, L["SURRENDER_TOOLTIP"])
+    surrender:Hide()
+    self.SurrenderButton = surrender
+
+    local draw = CreateFrame("Button", "ATT_DrawButton", frame, "UIPanelButtonTemplate")
+    draw:SetSize(120, 24)
+    draw:SetPoint("BOTTOMRIGHT", -40, 18)
+    draw:SetText(L["DRAW_OFFER"])
+    draw:SetScript("OnClick", function() ATT:OfferDraw() end)
+    AddTooltip(draw, L["DRAW_TOOLTIP"])
+    draw:Hide()
+    self.DrawButton = draw
 end
 
 -----------------------------------------
@@ -714,24 +1092,7 @@ function ATT:CreateBoard()
             end)
 
             button:SetScript("OnClick", function(buttonSelf)
-                local idx = buttonSelf.index
-
-                if not ATT.gameActive then
-                    print("|cffff0000[ATT]: " .. L["GAME_OVER"] .. "|r")
-                    return
-                end
-
-                if not ATT.isMyTurn then
-                    print("|cffff0000[ATT]: " .. L["NOT_YOUR_TURN"] .. "|r")
-                    return
-                end
-
-                if ATT.board[idx] ~= "" then
-                    print("|cffff0000[ATT]: " .. L["CELL_TAKEN"] .. "|r")
-                    return
-                end
-
-                ATT:PlayMove(idx)
+                ATT:OnCellClick(buttonSelf.index)
             end)
 
             self.cells[index] = button
@@ -742,19 +1103,64 @@ end
 -----------------------------------------
 -- JUGADAS
 -----------------------------------------
-function ATT:PlayMove(index)
+function ATT:OnCellClick(idx)
+    if not self.gameActive then
+        print("|cffff0000[ATT]: " .. L["GAME_OVER"] .. "|r")
+        return
+    end
+    if not self.isMyTurn then
+        print("|cffff0000[ATT]: " .. L["NOT_YOUR_TURN"] .. "|r")
+        return
+    end
+
+    local mine = self:MyFaction()
+
+    -- Fase de colocar: cualquier casilla libre
+    if CountPieces(self.board, mine) < PIECES then
+        if self.board[idx] ~= "" then
+            print("|cffff0000[ATT]: " .. L["CELL_TAKEN"] .. "|r")
+            return
+        end
+        self:PlayMove(nil, idx)
+        return
+    end
+
+    -- Fase de mover: primero una ficha propia, luego su casilla de destino
+    if self.board[idx] == mine then
+        self:Select(idx)
+        self:PlaySound(SND_HOVER)
+    elseif not self.selected then
+        print("|cffff0000[ATT]: " .. L["MOVE_PIECE"] .. "|r")
+    elseif self.board[idx] ~= "" then
+        print("|cffff0000[ATT]: " .. L["CELL_TAKEN"] .. "|r")
+    elseif not ADJACENT[self.selected][idx] then
+        print("|cffff0000[ATT]: " .. L["NOT_ADJACENT"] .. "|r")
+    else
+        self:PlayMove(self.selected, idx)
+    end
+end
+
+function ATT:ApplyMove(faction, from, to)
+    if from then
+        self.board[from] = ""
+        self:SetCellIcon(from, nil)
+    end
+    self.board[to] = faction
+    self:SetCellIcon(to, (faction == "Horde") and TEX_HORDE or TEX_ALLIANCE)
+end
+
+function ATT:PlayMove(from, to)
     if not self.gameActive then return end
 
-    local faction = self.isHost and "Horde" or "Alliance"
+    local faction = self:MyFaction()
+    if not IsLegalMove(self.board, faction, from, to) then return end
 
-    self.board[index] = faction
-    self:SetCellIcon(index, (faction == "Horde") and TEX_HORDE or TEX_ALLIANCE)
-
-    self.isMyTurn = false
-    self.TurnText:SetText("|cffff0000" .. L["TURN_OF"]:format(self.opponent) .. "|r")
+    self:ApplyMove(faction, from, to)
+    self:Select(nil)
+    self:SetTurn(false)
 
     self:PlaySound(SND_CLICK)
-    self:SendMessage("MOVE:" .. index .. ":" .. faction, self.opponent)
+    self:SendMessage("MOVE:" .. to .. ":" .. faction .. ":" .. (from or 0), self.opponent)
 
     -- Acabo de mover yo: si esto cierra la partida, he ganado yo
     self:CheckWinner(true)
@@ -770,9 +1176,12 @@ end
 -----------------------------------------
 -- CHECK WINNER
 -----------------------------------------
--- iPlayed: true si la última ficha la he puesto yo. Es el único dato que
--- decide de quién es la victoria; no se puede deducir de isMyTurn, porque al
--- recibir la jugada del rival todavía no se ha cambiado el turno.
+-- iPlayed: true si la última jugada es mía. Es el único dato que decide de
+-- quién es la victoria; no se puede deducir de isMyTurn, porque al recibir la
+-- jugada del rival todavía no se ha cambiado el turno.
+-- Sin empates: la partida sigue hasta que alguien hace 3 en raya. Con 3+3
+-- fichas y 3 casillas libres nadie puede quedarse sin movimiento (comprobado
+-- probando todas las posiciones), así que no hace falta regla de bloqueo.
 function ATT:CheckWinner(iPlayed)
     local b = self.board
     local wins = {
@@ -783,17 +1192,9 @@ function ATT:CheckWinner(iPlayed)
 
     for _, c in ipairs(wins) do
         if b[c[1]] ~= "" and b[c[1]] == b[c[2]] and b[c[2]] == b[c[3]] then
-            self:EndGame(true, iPlayed)
+            self:EndGame(iPlayed and "W" or "L")
             return true
         end
-    end
-
-    -- Empate
-    local draw = true
-    for i = 1, 9 do if b[i] == "" then draw = false end end
-    if draw then
-        self:EndGame(false, iPlayed)
-        return true
     end
     return false
 end
@@ -801,35 +1202,40 @@ end
 -----------------------------------------
 -- FINALIZAR PARTIDA
 -----------------------------------------
-function ATT:EndGame(hasWinner, iWon)
+-- result: "W" gano yo, "L" gana el rival, "D" tablas acordadas por los dos,
+-- "X" caducada (el que se quedó esperando ya lo ha explicado en el chat)
+function ATT:EndGame(result)
     local myName = GetMyName()
     local rival = self.opponent
-    local gold = self.betAmount or 0
+    local gold = self.betAmount or 0 -- en cobre
     self.gameActive = false
+    self:Select(nil)
+    self:ShowGameButtons(false)
 
-    if hasWinner and iWon then
+    if result == "W" then
         print("|cffffd700[ATT]: " .. L["VICTORY"] .. "|r")
         self:PlaySound(SND_WIN)
         ATT_Data.rankings[myName] = (ATT_Data.rankings[myName] or 0) + 1
 
         if gold > 0 and rival then
             ATT_Data.debts[rival] = (ATT_Data.debts[rival] or 0) + gold
-            print("|cffffff00" .. L["NOW_OWES_YOU"]:format(rival, gold) .. "|r")
+            print("|cffffff00" .. L["NOW_OWES_YOU"]:format(rival, Money(gold)) .. "|r")
             print("|cffffff00" .. L["HOW_TO_COLLECT"]:format(L["COLLECT"]) .. "|r")
         end
-        table.insert(ATT_Data.history, { date = date("%Y-%m-%d %H:%M"), rival = rival, result = "W", gold = gold })
-    elseif hasWinner then
+    elseif result == "L" then
         print("|cffff0000[ATT]: " .. L["DEFEAT"] .. "|r")
         self:PlaySound(SND_LOSE)
         if gold > 0 and rival then
             ATT_Data.debts[rival] = (ATT_Data.debts[rival] or 0) - gold
-            print("|cffff0000" .. L["NOW_YOU_OWE"]:format(rival, gold) .. "|r")
+            print("|cffff0000" .. L["NOW_YOU_OWE"]:format(rival, Money(gold)) .. "|r")
         end
-        table.insert(ATT_Data.history, { date = date("%Y-%m-%d %H:%M"), rival = rival, result = "L", gold = gold })
-    else
+    elseif result == "D" then
         print("|cffffff00[ATT]: " .. L["DRAW"] .. "|r")
-        self:PlaySound(SND_DRAW)
-        table.insert(ATT_Data.history, { date = date("%Y-%m-%d %H:%M"), rival = rival, result = "D", gold = 0 })
+        gold = 0
+    end
+    if result == "D" or result == "X" then self:PlaySound(SND_DRAW) end
+    if result ~= "X" then
+        table.insert(ATT_Data.history, { date = date("%Y-%m-%d %H:%M"), rival = rival, result = result, gold = gold })
     end
 
     self.TurnText:SetText("|cffffd700" .. L["GAME_FINISHED"] .. "|r")
