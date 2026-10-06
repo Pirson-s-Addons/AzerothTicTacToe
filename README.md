@@ -20,6 +20,24 @@
 
 ---
 
+## 📸 Screenshots · Capturas
+
+<table>
+<tr>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/705/tablero-apuestas-png.png" alt="Betting"><br><sub>Betting · Apuesta</sub></td>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/709/tablero-png.png" alt="Game board"><br><sub>Game board · Tablero</sub></td>
+</tr>
+<tr>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/704/tablero-1-png.png" alt="A win"><br><sub>A win · Partida ganada</sub></td>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/707/options-menu-png.png" alt="Options"><br><sub>Options · Opciones</sub></td>
+</tr>
+<tr>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/706/options-menu-config-png.png" alt="Settings"><br><sub>Settings · Ajustes</sub></td>
+</tr>
+</table>
+
+---
+
 ## What it does
 
 **Azeroth TicTacToe** lets you challenge another player who also has the addon to classic Tic-Tac-Toe with moving pieces, optionally with a bet in gold, silver or copper. Wins, losses, debts and the match history are saved between sessions.
