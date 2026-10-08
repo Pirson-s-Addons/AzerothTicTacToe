@@ -57,7 +57,8 @@
 - Botón **Rendirse**: termina la partida como derrota (pide confirmación). Cerrar el tablero solo lo oculta.
 - Botón **Tablas**: muestra "Tablas", "Tablas 1/2" y "Tablas 2/2". Solo cuando lo pulsan los dos jugadores la partida acaba sin que nadie gane ni pierda.
 - Solo los dos jugadores de la partida pueden mover, rendirse o pedir tablas.
-- **Libro de cuentas** con el ranking, el oro que te debe cada jugador y el historial de partidas.
+- Botón **Revancha** al acabar la partida: reta otra vez al mismo jugador por la misma apuesta. El otro ve "Aceptar revancha" en su propio tablero y acepta con un clic.
+- **Libro de Cuentas Goblin** con cuatro pestañas: **Ranking** (victorias y derrotas de cada uno de tus personajes), **Rivales** (tus victorias, derrotas, tablas y dinero ganado o perdido contra cada jugador), **Deudas** e **Historial** (tus últimas 50 partidas). Si lo abres con un jugador seleccionado, su nombre ya viene puesto para retarle.
 - Botón **Cobrar** en cada deuda a tu favor: selecciona al jugador y púlsalo para abrir el comercio (WoW solo deja a un addon abrir un comercio desde un clic).
 - Botón **Pagado** en cada deuda: no borra nada, pide al otro jugador que lo confirme. La deuda sale de los dos libros solo cuando el otro escribe `/ttt aceptar pagado`; con `/ttt cancelar pagado` se queda en los dos.
 - Icono de minimapa: clic izquierdo abre el Libro de cuentas, clic derecho muestra u oculta el tablero.

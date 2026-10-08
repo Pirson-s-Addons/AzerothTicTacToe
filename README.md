@@ -57,7 +57,8 @@
 - **Surrender** button: ends the game as a defeat (it asks first). Closing the board only hides it.
 - **Draw** button: shows "Draw", "Draw 1/2" and "Draw 2/2". Only when both players press it the game ends with nobody winning or losing.
 - Only the two players in the game can move, surrender or agree a draw.
-- **Ledger** with the ranking, the gold each player owes you and the match history.
+- **Rematch** button when the game ends: it challenges the same player again for the same bet. The other player sees "Accept rematch" on their own board and accepts with one click.
+- **Goblin Ledger** with four tabs: **Ranking** (wins and losses of each of your characters), **Rivals** (your wins, losses, draws and money won or lost against each player), **Debts** and **History** (your last 50 games). Opening it with a player targeted fills in their name to challenge them.
 - **Collect** button on every debt in your favor: target the player and click it to open the trade window (WoW only lets addons open a trade from a click).
 - **Paid** button on every debt: it does not delete anything, it asks the other player to confirm. The debt leaves both ledgers only when they type `/ttt accept paid`; with `/ttt cancel paid` it stays in both.
 - Minimap icon: left click opens the Ledger, right click shows or hides the board.

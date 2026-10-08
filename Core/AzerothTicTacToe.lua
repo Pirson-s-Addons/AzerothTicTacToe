@@ -218,6 +218,7 @@ function ATT:PLAYER_LOGIN()
     -- Campo a campo: un ATT_Data de una versión anterior puede no traerlos todos
     ATT_Data = ATT_Data or {}
     ATT_Data.rankings = ATT_Data.rankings or {} -- { ["Player"] = wins }
+    ATT_Data.losses = ATT_Data.losses or {}     -- { ["Player"] = derrotas }, desde la 1.02
     ATT_Data.debts = ATT_Data.debts or {}       -- { ["Player"] = amount } (positivo me deben, negativo debo)
     ATT_Data.history = ATT_Data.history or {}   -- { { date=T, rival=R, result=W/L/D, gold=cobre } }
     ATT_Data.settings = ATT_Data.settings or {}
@@ -345,8 +346,187 @@ function ATT:TradeWith(name)
 end
 
 -----------------------------------------
--- RANKING Y RIQUEZA (EL LIBRO DE CUENTAS)
+-- LIBRO DE CUENTAS (PESTAÑAS)
 -----------------------------------------
+local ICON_WIN = "Interface\\RaidFrame\\ReadyCheck-Ready"
+local ICON_LOSS = "Interface\\RaidFrame\\ReadyCheck-NotReady"
+local ICON_DRAW = "Interface\\RaidFrame\\ReadyCheck-Waiting"
+local RESULT_ICON = { W = ICON_WIN, L = ICON_LOSS, D = ICON_DRAW }
+local MEDALS = { "Interface\\MoneyFrame\\UI-GoldIcon", "Interface\\MoneyFrame\\UI-SilverIcon",
+    "Interface\\MoneyFrame\\UI-CopperIcon" }
+local ROW_H, LIST_W = 24, 364
+
+-- Balance con signo: verde si gano dinero, rojo si pierdo
+local function SignedMoney(copper)
+    if copper > 0 then return "|cff00ff00+" .. Money(copper) .. "|r" end
+    if copper < 0 then return "|cffff4040-" .. Money(-copper) .. "|r" end
+    return "|cff808080" .. Money(0) .. "|r"
+end
+
+-- Victorias, derrotas y tablas contra cada rival, sacadas del historial
+function ATT:RivalStats()
+    local byName, list = {}, {}
+    for _, e in ipairs(ATT_Data.history) do
+        if e.rival then
+            local s = byName[e.rival]
+            if not s then
+                s = { name = e.rival, W = 0, L = 0, D = 0, net = 0 }
+                byName[e.rival] = s
+                list[#list + 1] = s
+            end
+            if s[e.result] then s[e.result] = s[e.result] + 1 end
+            if e.result == "W" then s.net = s.net + (e.gold or 0) end
+            if e.result == "L" then s.net = s.net - (e.gold or 0) end
+        end
+    end
+    table.sort(list, function(a, b)
+        local ga, gb = a.W + a.L + a.D, b.W + b.L + b.D
+        if ga ~= gb then return ga > gb end
+        return a.W > b.W
+    end)
+    return list
+end
+
+-- Cada pestaña: columnas { x, ancho, alineación }, cabecera (claves de L) y filas
+local LEDGER_TABS = {
+    {
+        label = "TAB_RANKING", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01",
+        hint = "HINT_RANKING", empty = "NO_WINS",
+        layout = { { 28, 200, "LEFT" }, { 230, 65, "CENTER" }, { 297, 65, "CENTER" } },
+        header = { "COL_CHARACTER", "COL_WINS", "COL_LOSSES" },
+        rows = function()
+            local byName, list = {}, {}
+            local function Get(name)
+                if not byName[name] then
+                    byName[name] = { name = name, wins = 0, losses = 0 }
+                    list[#list + 1] = byName[name]
+                end
+                return byName[name]
+            end
+            for name, wins in pairs(ATT_Data.rankings) do Get(name).wins = wins end
+            for name, losses in pairs(ATT_Data.losses) do Get(name).losses = losses end
+            table.sort(list, function(a, b)
+                if a.wins ~= b.wins then return a.wins > b.wins end
+                return a.losses < b.losses
+            end)
+            local me, rows = GetMyName(), {}
+            for i, d in ipairs(list) do
+                local name = SameName(d.name, me) and ("|cff00ff00" .. d.name .. "|r") or d.name
+                rows[i] = { icon = MEDALS[i], values = { i .. ".  " .. name, "|cff00ff00" .. d.wins .. "|r",
+                    "|cffff4040" .. d.losses .. "|r" } }
+            end
+            return rows
+        end,
+    },
+    {
+        label = "TAB_RIVALS", icon = "Interface\\Icons\\Ability_Warrior_Challange",
+        hint = "HINT_RIVALS", empty = "NO_RIVALS",
+        layout = { { 28, 130, "LEFT" }, { 160, 32, "CENTER" }, { 194, 32, "CENTER" }, { 228, 32, "CENTER" },
+            { 262, 98, "RIGHT" } },
+        header = { "COL_PLAYER", "RESULT_WIN", "RESULT_LOSS", "RESULT_DRAW", "COL_BALANCE" },
+        rows = function()
+            local rows = {}
+            for i, s in ipairs(ATT:RivalStats()) do
+                local icon = (s.W > s.L) and ICON_WIN or (s.W < s.L) and ICON_LOSS or ICON_DRAW
+                rows[i] = { icon = icon, values = { s.name, "|cff00ff00" .. s.W .. "|r", "|cffff4040" .. s.L .. "|r",
+                    "|cffffff00" .. s.D .. "|r", SignedMoney(s.net) } }
+            end
+            return rows
+        end,
+    },
+    {
+        label = "TAB_DEBTS", icon = "Interface\\Icons\\INV_Misc_Coin_01",
+        hint = "HINT_DEBTS", empty = "NO_DEBTS",
+        layout = { { 28, 105, "LEFT" }, { 135, 105, "LEFT" } },
+        header = { "COL_PLAYER", "COL_AMOUNT" },
+        rows = function()
+            local rows = {}
+            for name, amount in pairs(ATT_Data.debts) do
+                if amount ~= 0 then
+                    local text = (amount > 0) and ("|cff00ff00" .. L["OWES_YOU"]) or ("|cffff4040" .. L["YOU_OWE"])
+                    rows[#rows + 1] = { icon = "Interface\\Icons\\INV_Misc_Coin_0" .. (amount > 0 and 1 or 5),
+                        values = { name, text .. " " .. Money(abs(amount)) .. "|r" }, debt = name, amount = amount }
+                end
+            end
+            table.sort(rows, function(a, b) return a.amount > b.amount end)
+            return rows
+        end,
+    },
+    {
+        label = "TAB_HISTORY", icon = "Interface\\Icons\\INV_Scroll_03",
+        hint = "HINT_HISTORY", empty = "NO_HISTORY",
+        layout = { { 28, 100, "LEFT" }, { 130, 150, "LEFT" }, { 282, 78, "RIGHT" } },
+        header = { "COL_DATE", "COL_PLAYER", "COL_BET" },
+        rows = function()
+            local rows = {}
+            for i = #ATT_Data.history, math.max(1, #ATT_Data.history - 49), -1 do -- las últimas 50
+                local e = ATT_Data.history[i]
+                rows[#rows + 1] = { icon = RESULT_ICON[e.result], values = { "|cffaaaaaa" .. (e.date or ""):sub(6) .. "|r",
+                    e.rival or "?", Money(e.gold or 0) } }
+            end
+            return rows
+        end,
+    },
+}
+
+-- Fila de la lista: franja, icono y hasta 5 columnas. Los botones solo los usa Deudas.
+local function CreateRow(parent)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetSize(LIST_W, ROW_H)
+    row.bg = row:CreateTexture(nil, "BACKGROUND")
+    row.bg:SetAllPoints()
+    row.bg:SetColorTexture(1, 0.82, 0.4, 0.07)
+    row.icon = row:CreateTexture(nil, "ARTWORK")
+    row.icon:SetSize(18, 18)
+    row.icon:SetPoint("LEFT", 4, 0)
+    row.cols = {}
+    for c = 1, 5 do
+        local fs = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        fs:SetWordWrap(false)
+        row.cols[c] = fs
+    end
+    return row
+end
+
+local function SetColumns(row, layout, values)
+    for c, fs in ipairs(row.cols) do
+        local col = layout[c]
+        if col and values[c] then
+            fs:ClearAllPoints()
+            fs:SetPoint("LEFT", col[1], 0)
+            fs:SetWidth(col[2])
+            fs:SetJustifyH(col[3])
+            fs:SetText(values[c])
+            fs:Show()
+        else
+            fs:Hide()
+        end
+    end
+end
+
+local function AddTip(widget, text)
+    widget:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(type(text) == "function" and text(self) or text, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    widget:SetScript("OnLeave", function() GameTooltip:Hide() end)
+end
+
+-- Caja oscura con borde dorado: separa cada zona del pergamino
+local function Inset(parent)
+    local box = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    box:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 14,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+    box:SetBackdropColor(0.08, 0.05, 0.02, 0.8)
+    box:SetBackdropBorderColor(0.85, 0.65, 0.3, 1)
+    return box
+end
+
 function ATT:CreateRankingFrame()
     if self.RankingFrame then
         self.RankingFrame:Show()
@@ -355,7 +535,7 @@ function ATT:CreateRankingFrame()
     end
 
     local frame = CreateFrame("Frame", "ATT_RankingFrame", UIParent, "BackdropTemplate")
-    frame:SetSize(400, 500)
+    frame:SetSize(440, 520)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -363,8 +543,9 @@ function ATT:CreateRankingFrame()
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", frame.StartMoving)
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    frame:SetFrameStrata("DIALOG")
+    if UISpecialFrames then table.insert(UISpecialFrames, "ATT_RankingFrame") end -- Escape lo cierra
 
-    -- Fondo y Borde Goblin
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
     frame.bg:SetAllPoints()
     frame.bg:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Parchment-Horizontal")
@@ -374,57 +555,80 @@ function ATT:CreateRankingFrame()
         insets = { left = 5, right = 5, top = 5, bottom = 5 }
     })
 
-    -- Titulo
+    -- Título con el logo
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    frame.title:SetPoint("TOP", 0, -20)
+    frame.title:SetPoint("TOP", 14, -20)
     frame.title:SetText("|cffffd700" .. L["LEDGER_TITLE"] .. "|r")
+    frame.title:SetShadowOffset(1, -1)
+    local logo = frame:CreateTexture(nil, "ARTWORK")
+    logo:SetSize(30, 30)
+    logo:SetPoint("RIGHT", frame.title, "LEFT", -6, 0)
+    logo:SetTexture("Interface\\AddOns\\AzerothTicTacToe\\img\\logo_attt")
 
-    -- Botón Cerrar
     local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", -5, -5)
     close:SetScript("OnClick", function() frame:Hide() end)
 
     ---------------------------
-    -- SECCIÓN: NUEVO TRATO
+    -- NUEVA PARTIDA
     ---------------------------
-    local dealHeader = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    dealHeader:SetPoint("TOPLEFT", 25, -60)
-    dealHeader:SetText("|cff00ff00" .. L["NEW_DEAL"] .. "|r")
+    local deal = Inset(frame)
+    deal:SetPoint("TOPLEFT", 20, -52)
+    deal:SetPoint("TOPRIGHT", -20, -52)
+    deal:SetHeight(60)
 
-    -- Input Nombre
-    local nameBox = CreateFrame("EditBox", "ATT_NameInput", frame, "InputBoxTemplate")
-    nameBox:SetSize(120, 20)
-    nameBox:SetPoint("TOPLEFT", 25, -85)
+    local dealIcon = deal:CreateTexture(nil, "ARTWORK")
+    dealIcon:SetSize(16, 16)
+    dealIcon:SetPoint("TOPLEFT", 10, -8)
+    dealIcon:SetTexture("Interface\\Icons\\Ability_Warrior_Challange")
+    local dealHeader = deal:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    dealHeader:SetPoint("LEFT", dealIcon, "RIGHT", 5, 0)
+    dealHeader:SetText(L["NEW_GAME"])
+
+    -- Nombre: texto de ejemplo gris que se borra al escribir
+    local nameBox = CreateFrame("EditBox", "ATT_NameInput", deal, "InputBoxTemplate")
+    nameBox:SetSize(110, 20)
+    nameBox:SetPoint("BOTTOMLEFT", 16, 9)
     nameBox:SetAutoFocus(false)
-    nameBox:SetText(L["NAME"])
+    local function ShowPlaceholder()
+        if nameBox:GetText() == "" then
+            nameBox:SetText(L["NAME"])
+            nameBox:SetTextColor(0.5, 0.5, 0.5)
+        end
+    end
+    nameBox:SetScript("OnEditFocusGained", function(self)
+        if self:GetText() == L["NAME"] then self:SetText("") end
+        self:SetTextColor(1, 1, 1)
+    end)
+    nameBox:SetScript("OnEditFocusLost", ShowPlaceholder)
     nameBox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    ShowPlaceholder()
 
-    -- Input Oro
     -- Apuesta: oro, plata y cobre, cada uno con su icono
     local function CoinBox(name, anchor, width, maxLetters, coin)
-        local box = CreateFrame("EditBox", name, frame, "InputBoxTemplate")
+        local box = CreateFrame("EditBox", name, deal, "InputBoxTemplate")
         box:SetSize(width, 20)
         box:SetPoint("LEFT", anchor, "RIGHT", 10, 0)
         box:SetAutoFocus(false)
         box:SetNumeric(true)
         box:SetMaxLetters(maxLetters)
         box:SetText("0")
-        box.icon = frame:CreateTexture(nil, "OVERLAY")
+        box:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+        box.icon = deal:CreateTexture(nil, "OVERLAY")
         box.icon:SetSize(13, 13)
         box.icon:SetPoint("LEFT", box, "RIGHT", 1, 0)
         box.icon:SetTexture("Interface\\MoneyFrame\\UI-" .. coin .. "Icon")
         return box
     end
-    nameBox:SetWidth(105)
     local goldBox = CoinBox("ATT_GoldInput", nameBox, 42, 6, "Gold")
     local silverBox = CoinBox("ATT_SilverInput", goldBox.icon, 24, 2, "Silver")
     local copperBox = CoinBox("ATT_CopperInput", silverBox.icon, 24, 2, "Copper")
 
-    -- Botón Retar
-    local challengeBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    challengeBtn:SetSize(70, 22)
-    challengeBtn:SetPoint("LEFT", copperBox.icon, "RIGHT", 8, 0)
+    local challengeBtn = CreateFrame("Button", nil, deal, "UIPanelButtonTemplate")
+    challengeBtn:SetSize(84, 24)
+    challengeBtn:SetPoint("BOTTOMRIGHT", -10, 7)
     challengeBtn:SetText(L["CHALLENGE"])
+    AddTip(challengeBtn, L["CMD_DESC_CHALLENGE"])
     challengeBtn:SetScript("OnClick", function()
         local name = nameBox:GetText()
         local coins = (tonumber(goldBox:GetText()) or 0) .. " " .. (tonumber(silverBox:GetText()) or 0)
@@ -435,118 +639,140 @@ function ATT:CreateRankingFrame()
         end
     end)
 
+    -- Al abrirlo con un jugador seleccionado, su nombre ya viene puesto
+    frame:SetScript("OnShow", function()
+        if UnitIsPlayer("target") and not UnitIsUnit("target", "player") then
+            nameBox:SetText(GetUnitName("target", true))
+            nameBox:SetTextColor(1, 1, 1)
+        end
+    end)
+
     ---------------------------
-    -- SECCIÓN: LISTADO (Scrolling)
+    -- LISTA (una pestaña cada vez)
     ---------------------------
-    -- Usaremos un ScrollFrame simple
-    local scrollFrame = CreateFrame("ScrollFrame", "ATT_RankingScroll", frame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetSize(330, 320)
-    scrollFrame:SetPoint("TOP", 0, -140)
+    frame.hint = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    frame.hint:SetPoint("TOPLEFT", deal, "BOTTOMLEFT", 4, -10)
+    frame.hint:SetPoint("RIGHT", -24, 0)
+    frame.hint:SetJustifyH("LEFT")
+    frame.hint:SetTextColor(0.3, 0.18, 0.05)
+
+    local list = Inset(frame)
+    list:SetPoint("TOPLEFT", deal, "BOTTOMLEFT", 0, -30)
+    list:SetPoint("BOTTOMRIGHT", -20, 20)
+
+    frame.header = CreateRow(list)
+    frame.header:SetPoint("TOPLEFT", 8, -6)
+    frame.header.bg:SetColorTexture(0, 0, 0, 0)
+    for _, fs in ipairs(frame.header.cols) do fs:SetFontObject("GameFontNormalSmall") end
+    local line = list:CreateTexture(nil, "ARTWORK")
+    line:SetColorTexture(0.85, 0.65, 0.3, 0.5)
+    line:SetSize(LIST_W, 1)
+    line:SetPoint("TOPLEFT", frame.header, "BOTTOMLEFT", 0, -1)
+
+    local scrollFrame = CreateFrame("ScrollFrame", "ATT_RankingScroll", list, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 8, -34)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -28, 8)
 
     local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetSize(330, 400)
+    content:SetSize(LIST_W, 1)
     scrollFrame:SetScrollChild(content)
-
-    -- Ranking e historial son texto corrido: un FontString cada uno, reescrito
-    -- en cada refresco. Solo las deudas necesitan widgets por fila (botones),
-    -- y esas se reciclan en content.rows.
-    content.rankText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    content.rankText:SetPoint("TOPLEFT", 10, 0)
-    content.rankText:SetJustifyH("LEFT")
-
-    content.histText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    content.histText:SetJustifyH("LEFT")
-
     content.rows = {}
+    content.empty = content:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    content.empty:SetPoint("TOP", 0, -40)
+    content.empty:SetWidth(LIST_W - 20)
 
     frame.content = content
-    self.RankingFrame = frame
+    frame.scroll = scrollFrame
 
+    ---------------------------
+    -- PESTAÑAS (debajo, como en la ficha del personaje)
+    ---------------------------
+    frame.Tabs = {}
+    for i, def in ipairs(LEDGER_TABS) do
+        local tab = CreateFrame("Button", "ATT_RankingFrameTab" .. i, frame, "PanelTabButtonTemplate")
+        tab:SetID(i)
+        tab:SetText("|T" .. def.icon .. ":14:14|t " .. L[def.label])
+        if PanelTemplates_TabResize then PanelTemplates_TabResize(tab, 0) end
+        if i == 1 then
+            tab:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 12, 4)
+        else
+            tab:SetPoint("TOPLEFT", frame.Tabs[i - 1], "TOPRIGHT", 3, 0)
+        end
+        tab:SetScript("OnClick", function()
+            ATT:SelectLedgerTab(i)
+            ATT:PlaySound(SND_HOVER)
+        end)
+        frame.Tabs[i] = tab
+    end
+    if PanelTemplates_SetNumTabs then PanelTemplates_SetNumTabs(frame, #LEDGER_TABS) end
+
+    self.RankingFrame = frame
+    self:SelectLedgerTab(self.ledgerTab or 1)
+end
+
+function ATT:SelectLedgerTab(index)
+    self.ledgerTab = index
+    local frame = self.RankingFrame
+    if not frame then return end
+    if PanelTemplates_SetTab then PanelTemplates_SetTab(frame, index) end
+    frame.scroll:SetVerticalScroll(0)
     self:UpdateRankingData()
 end
 
--- Crea o recicla la fila N de la lista de deudas
-local function AcquireDebtRow(content, i)
+-- Crea o recicla la fila N de la lista
+local function AcquireRow(content, i)
     local row = content.rows[i]
     if row then
         row:Show()
         return row
     end
 
-    row = CreateFrame("Frame", nil, content)
-    row:SetSize(310, 20)
-
-    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    row.text:SetPoint("LEFT", 10, 0)
-    row.text:SetWidth(160)
-    row.text:SetJustifyH("LEFT")
+    row = CreateRow(content)
 
     row.clearBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    row.clearBtn:SetSize(65, 18)
-    row.clearBtn:SetPoint("RIGHT", 0, 0)
+    row.clearBtn:SetSize(62, 20)
+    row.clearBtn:SetPoint("RIGHT", -2, 0)
     row.clearBtn:SetNormalFontObject("GameFontNormalSmall")
     row.clearBtn:SetDisabledFontObject("GameFontDisableSmall")
-    row.clearBtn:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(L["PAID_TOOLTIP"]:format(self.rival or "?"), 1, 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    row.clearBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    AddTip(row.clearBtn, function(self) return L["PAID_TOOLTIP"]:format(self.rival or "?") end)
 
     row.tradeBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    row.tradeBtn:SetSize(60, 18)
+    row.tradeBtn:SetSize(58, 20)
     row.tradeBtn:SetPoint("RIGHT", row.clearBtn, "LEFT", -4, 0)
     row.tradeBtn:SetText(L["COLLECT"])
     row.tradeBtn:SetNormalFontObject("GameFontNormalSmall")
+    AddTip(row.tradeBtn, function(self) return L["TARGET_TO_TRADE"]:format(self.rival or "?") end)
 
     content.rows[i] = row
     return row
 end
 
 function ATT:UpdateRankingData()
-    if not self.RankingFrame then return end
-    local content = self.RankingFrame.content
+    local frame = self.RankingFrame
+    if not frame then return end
+    local def = LEDGER_TABS[self.ledgerTab or 1]
+    local content = frame.content
 
-    ---------------------------
-    -- RANKING
-    ---------------------------
-    local sortedR = {}
-    for name, wins in pairs(ATT_Data.rankings) do
-        table.insert(sortedR, { name = name, wins = wins })
-    end
-    table.sort(sortedR, function(a, b) return a.wins > b.wins end)
+    frame.hint:SetText(L[def.hint])
+    local header = {}
+    for c, key in ipairs(def.header) do header[c] = L[key] end
+    SetColumns(frame.header, def.layout, header)
 
-    local lines = { "|cffffd700" .. L["RANKING"] .. "|r" }
-    for i, data in ipairs(sortedR) do
-        if i > 5 then break end -- Solo top 5
-        table.insert(lines, "   " .. i .. ". " .. data.name .. ": " .. L["WINS"]:format(data.wins))
-    end
-    if #lines == 1 then
-        table.insert(lines, "   |cff808080" .. L["NO_WINS"] .. "|r")
-    end
-    table.insert(lines, " ")
-    table.insert(lines, "|cffffd700" .. L["DEBTS"] .. "|r")
-    content.rankText:SetText(table.concat(lines, "\n"))
+    local rows = def.rows()
+    for i, data in ipairs(rows) do
+        local row = AcquireRow(content, i)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_H)
+        row.bg:SetShown(i % 2 == 1)
+        row.icon:SetTexture(data.icon)
+        SetColumns(row, def.layout, data.values)
 
-    local yOffset = -content.rankText:GetStringHeight() - 6
-
-    ---------------------------
-    -- DEUDAS (una fila con botones por cada una)
-    ---------------------------
-    local rowCount = 0
-    for name, amount in pairs(ATT_Data.debts) do
-        if amount ~= 0 then
-            rowCount = rowCount + 1
-            local row = AcquireDebtRow(content, rowCount)
-            row:ClearAllPoints()
-            row:SetPoint("TOPLEFT", 10, yOffset)
-
-            local color = (amount > 0) and "|cff00ff00" or "|cffff0000"
-            local label = (amount > 0) and L["OWES_YOU"] or L["YOU_OWE"]
-            row.text:SetText(name .. " " .. color .. label .. " " .. Money(abs(amount)) .. "|r")
-
-            -- "Pagado" no borra nada: avisa al rival, y solo su confirmación salda la deuda
-            row.clearBtn.rival = name
+        -- "Pagado" no borra nada: avisa al rival, y solo su confirmación salda la deuda
+        local name = data.debt
+        row.clearBtn:SetShown(name ~= nil)
+        row.tradeBtn:Hide()
+        if name then
+            row.clearBtn.rival, row.tradeBtn.rival = name, name
             local pending = ATT.paidSent[name] ~= nil
             row.clearBtn:SetText(pending and L["PENDING"] or L["PAID"])
             row.clearBtn:SetEnabled(not pending)
@@ -554,53 +780,22 @@ function ATT:UpdateRankingData()
                 ATT:RequestPayment(name)
                 ATT:PlaySound(SND_HOVER)
             end)
-
             -- Solo tiene sentido abrir comercio si son ellos los que pagan
-            if amount > 0 then
+            if data.amount > 0 then
                 row.tradeBtn:Show()
                 row.tradeBtn:SetScript("OnClick", function() ATT:TradeWith(name) end)
-            else
-                row.tradeBtn:Hide()
             end
-
-            yOffset = yOffset - 22
         end
     end
 
     -- Ocultar las filas sobrantes del refresco anterior
-    for i = rowCount + 1, #content.rows do
+    for i = #rows + 1, #content.rows do
         content.rows[i]:Hide()
     end
 
-    if rowCount == 0 then
-        yOffset = yOffset - 4
-    end
-
-    ---------------------------
-    -- HISTORIAL
-    ---------------------------
-    local hist = { rowCount == 0 and "   |cff808080" .. L["NO_DEBTS"] .. "|r" or " ", " ",
-        "|cffffd700" .. L["HISTORY"] .. "|r" }
-
-    local count = 0
-    for i = #ATT_Data.history, 1, -1 do
-        if count >= 10 then break end -- Solo las últimas 10 partidas
-        local entry = ATT_Data.history[i]
-        local resultColor = (entry.result == "W") and "|cff00ff00" .. L["RESULT_WIN"] .. "|r"
-            or (entry.result == "L") and "|cffff0000" .. L["RESULT_LOSS"] .. "|r"
-            or "|cffffff00" .. L["RESULT_DRAW"] .. "|r"
-        table.insert(hist, "   " .. entry.date .. " " .. resultColor .. " vs " .. entry.rival .. " (" .. Money(entry.gold) .. ")")
-        count = count + 1
-    end
-    if count == 0 then
-        table.insert(hist, "   |cff808080" .. L["NO_HISTORY"] .. "|r")
-    end
-
-    content.histText:ClearAllPoints()
-    content.histText:SetPoint("TOPLEFT", 10, yOffset)
-    content.histText:SetText(table.concat(hist, "\n"))
-
-    content:SetHeight(abs(yOffset) + content.histText:GetStringHeight() + 30)
+    content.empty:SetText(L[def.empty])
+    content.empty:SetShown(#rows == 0)
+    content:SetHeight(math.max(#rows * ROW_H, 1))
 end
 
 function ATT:HandleSlashCommand(msg)
@@ -681,6 +876,9 @@ function ATT:AcceptInvite()
     self:SendMessage("ACCEPT:" .. GetMyName() .. ":" .. PROTOCOL, self.pendingInvite.host)
     self.pendingStart = self.pendingInvite
     self.pendingInvite = nil
+    -- Si los dos pulsaron Revancha a la vez, mi reto queda anulado: empieza el suyo
+    self.isHost = false
+    self:UpdateRematchButton()
     print("|cffffff00[ATT]: " .. L["WAITING_START"]:format(self.pendingStart.host) .. "|r")
 end
 
@@ -692,6 +890,7 @@ function ATT:CancelInvite()
     self:SendMessage("CANCEL:" .. GetMyName(), self.pendingInvite.host)
     print("|cffff0000[ATT]: " .. L["DECLINED"] .. "|r")
     self.pendingInvite = nil
+    self:UpdateRematchButton()
 end
 
 -----------------------------------------
@@ -749,6 +948,44 @@ function ATT:ShowGameButtons(shown)
     if self.SurrenderButton then self.SurrenderButton:SetShown(shown) end
     if self.DrawButton then self.DrawButton:SetShown(shown) end
     self:UpdateDrawButton()
+    self:UpdateRematchButton()
+end
+
+-----------------------------------------
+-- REVANCHA
+-----------------------------------------
+-- Al acabar, el botón reta al mismo rival por la misma apuesta. Si el rival
+-- se adelanta, el mismo botón pasa a "Aceptar revancha".
+function ATT:UpdateRematchButton()
+    local btn = self.RematchButton
+    if not btn then return end
+    local rival = self.lastRival
+    btn:SetShown(not self.gameActive and rival ~= nil)
+    if self.gameActive or not rival then return end
+    local invite = self.pendingInvite
+    if invite and SameName(invite.host, rival) then
+        btn:SetText(L["REMATCH_ACCEPT"])
+        btn:SetEnabled(true)
+        self.TurnText:SetText("|cffffff00" .. L["REMATCH_OFFERED"]:format(rival, Money(invite.gold)) .. "|r")
+    elseif self.isHost and SameName(self.opponent, rival) then
+        btn:SetText(L["REMATCH_SENT"])
+        btn:SetEnabled(false)
+    else
+        btn:SetText(L["REMATCH"])
+        btn:SetEnabled(true)
+    end
+end
+
+function ATT:Rematch()
+    local rival = self.lastRival
+    if self.gameActive or not rival then return end
+    if self.pendingInvite and SameName(self.pendingInvite.host, rival) then
+        self:AcceptInvite()
+    else
+        print(L["SENDING_INVITE"]:format(rival, Money(self.lastBet)))
+        self:SendInvite(rival, self.lastBet)
+        self:UpdateRematchButton()
+    end
 end
 
 -----------------------------------------
@@ -815,11 +1052,14 @@ function ATT:CHAT_MSG_ADDON(prefix, message, channel, sender)
             self:SendMessage("CANCEL:" .. GetMyName(), host)
             return
         end
-        print("|cffffff00[ATT]: " .. L["CHALLENGED"]:format(host, Money(gold)) .. "|r")
+        local rematch = SameName(host, self.lastRival)
+        print("|cffffff00[ATT]: " .. L[rematch and "REMATCH_OFFERED" or "CHALLENGED"]:format(host, Money(gold)) .. "|r")
         print("|cff888888\"" .. L["TAUNT"] .. "\"|r")
         print(L["TYPE_ACCEPT"]:format("|cff00ff00" .. Command(L["CMD_ACCEPT"]) .. "|r",
             "|cffff0000" .. Command(L["CMD_CANCEL"]) .. "|r"))
         self.pendingInvite = { host = host, gold = gold }
+        if rematch and self.MainFrame then self.MainFrame:Show() end
+        self:UpdateRematchButton()
     elseif msgType == "ACCEPT" then
         if not self.isHost or self.gameActive or not SameName(sender, self.opponent) then return end
         if parts[3] ~= PROTOCOL then
@@ -845,6 +1085,7 @@ function ATT:CHAT_MSG_ADDON(prefix, message, channel, sender)
         print("|cffff0000" .. L["REJECTED"]:format(sender) .. "|r")
         self.opponent = nil
         self.isHost = false
+        self:UpdateRematchButton()
     elseif msgType == "CANCEL_GAME" then
         -- Solo lo envía la 1.00
         if not fromOpponent then return end
@@ -943,6 +1184,8 @@ function ATT:StartGame(opponent, gold, iAmHost, iStart)
     self.betAmount = gold
     self.isHost = iAmHost
     self.drawMine, self.drawTheirs = false, false
+    -- Si el rival también me había retado (revancha cruzada), ese reto ya sobra
+    if self.pendingInvite and SameName(self.pendingInvite.host, cleanOpponent) then self.pendingInvite = nil end
     self:ResetBoard()
     self.MainFrame:Show()
     self:ShowGameButtons(true)
@@ -1046,6 +1289,16 @@ function ATT:CreateMainFrame()
     AddTooltip(draw, L["DRAW_TOOLTIP"])
     draw:Hide()
     self.DrawButton = draw
+
+    -- Revancha, solo con la partida acabada
+    local rematch = CreateFrame("Button", "ATT_RematchButton", frame, "UIPanelButtonTemplate")
+    rematch:SetSize(160, 24)
+    rematch:SetPoint("BOTTOM", 0, 18)
+    rematch:SetText(L["REMATCH"])
+    rematch:SetScript("OnClick", function() ATT:Rematch() end)
+    AddTooltip(rematch, L["REMATCH_TOOLTIP"])
+    rematch:Hide()
+    self.RematchButton = rematch
 end
 
 -----------------------------------------
@@ -1209,8 +1462,9 @@ function ATT:EndGame(result)
     local rival = self.opponent
     local gold = self.betAmount or 0 -- en cobre
     self.gameActive = false
+    -- Para la revancha; el anfitrión deja de serlo hasta que retan otra vez
+    self.lastRival, self.lastBet, self.isHost = rival, gold, false
     self:Select(nil)
-    self:ShowGameButtons(false)
 
     if result == "W" then
         print("|cffffd700[ATT]: " .. L["VICTORY"] .. "|r")
@@ -1224,6 +1478,7 @@ function ATT:EndGame(result)
         end
     elseif result == "L" then
         print("|cffff0000[ATT]: " .. L["DEFEAT"] .. "|r")
+        ATT_Data.losses[myName] = (ATT_Data.losses[myName] or 0) + 1
         self:PlaySound(SND_LOSE)
         if gold > 0 and rival then
             ATT_Data.debts[rival] = (ATT_Data.debts[rival] or 0) - gold
@@ -1239,6 +1494,7 @@ function ATT:EndGame(result)
     end
 
     self.TurnText:SetText("|cffffd700" .. L["GAME_FINISHED"] .. "|r")
+    self:ShowGameButtons(false)
 
     -- Refrescar el libro de cuentas solo si lo tiene abierto durante la partida
     if self.RankingFrame and self.RankingFrame:IsShown() then
