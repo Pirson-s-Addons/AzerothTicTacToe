@@ -143,3 +143,10 @@ L["CMD_DESC_CANCEL_PAID"] = "빚이 지불되지 않았다고 알립니다."
 L["AUTO_DECLINED"] = "%s님이 도전했습니다. 거절됨: 설정에서 도전 받기가 꺼져 있습니다."
 L["GAME_EXPIRED"] = "%s님이 %d분 동안 두지 않았습니다. 게임이 만료되었습니다: 승자도 패자도 없습니다."
 L["GAME_EXPIRED_YOU"] = "제시간에 두지 않았습니다. %s님과의 게임이 만료되었습니다: 승자도 패자도 없습니다."
+
+-- 1.04: rival IA
+L["CMD_AI"] = "ai"
+L["PLAY_AI_TOOLTIP"] = "컴퓨터인 Azeroth AI와 대결합니다. 내기 없음: 기록과 라이벌에만 반영됩니다."
+L["CMD_DESC_AI"] = "컴퓨터인 Azeroth AI와 게임을 시작합니다."
+L["AI_HELLO"] = "실력 좀 볼까! 최고의 고블린이 이기길."
+L["AI_PROMO"] = "참고: Azeroth AI는 어디서 레벨업할지, 어떤 던전을 갈지 등을 알려주는 게임 내 도우미 애드온이기도 합니다. CurseForge에서 찾아보세요."

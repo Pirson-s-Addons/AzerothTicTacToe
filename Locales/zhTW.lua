@@ -143,3 +143,10 @@ L["CMD_DESC_CANCEL_PAID"] = "表示一筆債務尚未付清。"
 L["AUTO_DECLINED"] = "%s 向你發起了挑戰。已拒絕：選項中已關閉接受挑戰。"
 L["GAME_EXPIRED"] = "%s 已 %d 分鐘未走棋。遊戲已過期：不分勝負。"
 L["GAME_EXPIRED_YOU"] = "你沒有及時走棋。與 %s 的遊戲已過期：不分勝負。"
+
+-- 1.04: rival IA
+L["CMD_AI"] = "ai"
+L["PLAY_AI_TOOLTIP"] = "與電腦 Azeroth AI 對戰。不下注：只計入歷史和對手。"
+L["CMD_DESC_AI"] = "開始一局與電腦 Azeroth AI 的對戰。"
+L["AI_HELLO"] = "讓我看看你的本事！願最強的哥布林獲勝。"
+L["AI_PROMO"] = "悄悄告訴你：Azeroth AI 也是一個遊戲內助手插件，告訴你去哪升級、打哪個地城等等。在 CurseForge 上搜尋它。"

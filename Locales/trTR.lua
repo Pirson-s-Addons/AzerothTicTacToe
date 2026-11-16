@@ -143,3 +143,10 @@ L["CMD_DESC_CANCEL_PAID"] = "Bir borcun ÖDENMEDİĞİNİ söyler."
 L["AUTO_DECLINED"] = "%s sana meydan okudu. Reddedildi: meydan okumalar seçeneklerde kapalı."
 L["GAME_EXPIRED"] = "%s %d dakikadır hamle yapmadı. Oyunun süresi doldu: kimse kazanmaz ya da kaybetmez."
 L["GAME_EXPIRED_YOU"] = "Zamanında hamle yapmadın. %s ile olan oyunun süresi doldu: kimse kazanmaz ya da kaybetmez."
+
+-- 1.04: rival IA
+L["CMD_AI"] = "ai"
+L["PLAY_AI_TOOLTIP"] = "Bilgisayar Azeroth AI'a karşı oyna. Bahis yok: sadece Geçmiş ve Rakipler'de sayılır."
+L["CMD_DESC_AI"] = "Bilgisayar Azeroth AI'a karşı bir oyun başlatır."
+L["AI_HELLO"] = "Bakalım neler yapabiliyorsun! En iyi goblin kazansın."
+L["AI_PROMO"] = "Psst: Azeroth AI aynı zamanda nerede seviye atlayacağını, hangi zindana gireceğini ve çok daha fazlasını söyleyen bir oyun içi asistan eklentisidir. CurseForge'da ara."

@@ -143,3 +143,10 @@ L["CMD_DESC_CANCEL_PAID"] = "Báo rằng một khoản nợ CHƯA được trả
 L["AUTO_DECLINED"] = "%s đã thách đấu bạn. Đã từ chối: tính năng nhận thách đấu đang tắt trong tùy chọn."
 L["GAME_EXPIRED"] = "%s đã không đi quân trong %d phút. Trận đã hết hạn: không ai thắng hay thua."
 L["GAME_EXPIRED_YOU"] = "Bạn đã không đi quân kịp. Trận với %s đã hết hạn: không ai thắng hay thua."
+
+-- 1.04: rival IA
+L["CMD_AI"] = "ai"
+L["PLAY_AI_TOOLTIP"] = "Chơi với Azeroth AI, máy tính. Không cược: chỉ tính trong Lịch sử và Đối thủ."
+L["CMD_DESC_AI"] = "Bắt đầu ván đấu với Azeroth AI, máy tính."
+L["AI_HELLO"] = "Để xem ngươi giỏi cỡ nào! Mong goblin giỏi nhất chiến thắng."
+L["AI_PROMO"] = "Psst: Azeroth AI còn là addon trợ lý trong game cho bạn biết nên lên cấp ở đâu, đi hầm ngục nào và nhiều hơn nữa. Tìm nó trên CurseForge."

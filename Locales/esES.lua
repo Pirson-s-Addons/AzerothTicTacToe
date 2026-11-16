@@ -143,3 +143,10 @@ L["CMD_DESC_CANCEL_PAID"] = "Dice que una deuda NO se ha pagado."
 L["AUTO_DECLINED"] = "%s te ha retado. Rechazado: los retos están desactivados en las opciones."
 L["GAME_EXPIRED"] = "%s no ha movido en %d minutos. La partida ha caducado: nadie gana ni pierde."
 L["GAME_EXPIRED_YOU"] = "No has movido a tiempo. La partida contra %s ha caducado: nadie gana ni pierde."
+
+-- 1.04: rival IA
+L["CMD_AI"] = "ia"
+L["PLAY_AI_TOOLTIP"] = "Juega contra Azeroth AI, el ordenador. Sin apuesta: solo cuenta en el Historial y en Rivales."
+L["CMD_DESC_AI"] = "Empieza una partida contra Azeroth AI, el ordenador."
+L["AI_HELLO"] = "¡A ver de qué pasta estás hecho! Que gane el mejor goblin."
+L["AI_PROMO"] = "Psst: Azeroth AI también es un addon asistente dentro del juego que te dice dónde subir de nivel, qué mazmorra hacer y mucho más. Búscalo en CurseForge."

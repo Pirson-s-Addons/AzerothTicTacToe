@@ -143,3 +143,10 @@ L["CMD_DESC_CANCEL_PAID"] = "Oznámí, že dluh NEBYL zaplacen."
 L["AUTO_DECLINED"] = "%s tě vyzval. Odmítnuto: výzvy jsou v možnostech vypnuté."
 L["GAME_EXPIRED"] = "%s netáhl už %d minut. Hra vypršela: nikdo nevyhrává ani neprohrává."
 L["GAME_EXPIRED_YOU"] = "Netáhl jsi včas. Hra s %s vypršela: nikdo nevyhrává ani neprohrává."
+
+-- 1.04: rival IA
+L["CMD_AI"] = "ai"
+L["PLAY_AI_TOOLTIP"] = "Hraj proti Azeroth AI, počítači. Bez sázky: počítá se jen v Historii a Soupeřích."
+L["CMD_DESC_AI"] = "Začne hru proti Azeroth AI, počítači."
+L["AI_HELLO"] = "Uvidíme, co v tobě je! Ať vyhraje nejlepší goblin."
+L["AI_PROMO"] = "Psst: Azeroth AI je také doplněk-asistent ve hře, který ti řekne, kde levelovat, jaký dungeon dát a mnohem víc. Hledej ho na CurseForge."

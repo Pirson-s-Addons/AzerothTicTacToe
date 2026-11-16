@@ -53,6 +53,7 @@
 ## Features
 
 - Challenge anyone with the addon, with or without a bet in **gold, silver and copper**.
+- No one to play with? **vs Azeroth AI** (on the board and in the Ledger) starts a game against the computer. No bet: it counts in History and Rivals, not in the Ranking.
 - 3x3 board in its own window; moves travel as addon messages, and every incoming move is checked against the rules (right opponent, right turn, legal move).
 - **Surrender** button: ends the game as a defeat (it asks first). Closing the board only hides it.
 - **Draw** button: shows "Draw", "Draw 1/2" and "Draw 2/2". Only when both players press it the game ends with nobody winning or losing.
@@ -81,8 +82,18 @@ Commands follow your client's language (for example `/ttt aceptar` in Spanish); 
 
 - `/ttt` opens the options and lists the commands in the chat.
 - `/ttt <player> [gold] [silver] [copper]` challenges a player, optionally with a bet: `/ttt Caudillo Jr 0 0 10` bets 10 copper.
+- `/ttt ai` starts a game against Azeroth AI, the computer.
 - `/ttt accept` / `/ttt cancel` accepts or declines the pending challenge.
 - `/ttt accept paid` / `/ttt cancel paid` confirms or denies that a debt has been paid.
+
+## API for addon authors
+
+Global `AzerothTicTacToeAPI` (`version = 1`):
+
+- `AzerothTicTacToeAPI.PlayVsAI()` opens the board against Azeroth AI. Returns `false` if a game is already in progress.
+- `AzerothTicTacToeAPI.IsPlaying()` returns `true` during a game.
+
+Check `AzerothTicTacToeAPI.version == 1` before using it.
 
 ---
 

@@ -53,6 +53,7 @@
 ## Funciones
 
 - Reta a cualquiera que tenga el addon, con o sin apuesta en **oro, plata y cobre**.
+- ¿Nadie con quien jugar? **vs Azeroth AI** (en el tablero y en el Libro) empieza una partida contra el ordenador. Sin apuesta: cuenta en el Historial y en Rivales, no en el Ranking.
 - Tablero 3x3 en su propia ventana; las jugadas viajan como mensajes de addon y cada jugada que llega se comprueba con las reglas (rival correcto, su turno, jugada válida).
 - Botón **Rendirse**: termina la partida como derrota (pide confirmación). Cerrar el tablero solo lo oculta.
 - Botón **Tablas**: muestra "Tablas", "Tablas 1/2" y "Tablas 2/2". Solo cuando lo pulsan los dos jugadores la partida acaba sin que nadie gane ni pierda.
@@ -81,8 +82,19 @@ Los comandos van en el idioma de tu cliente; los de inglés (`accept`, `cancel`,
 
 - `/ttt` abre las opciones y muestra los comandos en el chat.
 - `/ttt <jugador> [oro] [plata] [cobre]` reta a un jugador, con apuesta opcional: `/ttt Caudillo Jr 0 0 10` apuesta 10 de cobre.
+- `/ttt ia` empieza una partida contra Azeroth AI, el ordenador.
 - `/ttt aceptar` / `/ttt cancelar` acepta o rechaza el reto pendiente.
 - `/ttt aceptar pagado` / `/ttt cancelar pagado` confirma o niega que una deuda se ha pagado.
+
+
+## API para autores de addons
+
+Global `AzerothTicTacToeAPI` (`version = 1`):
+
+- `AzerothTicTacToeAPI.PlayVsAI()` abre el tablero contra Azeroth AI. Devuelve `false` si ya hay una partida en curso.
+- `AzerothTicTacToeAPI.IsPlaying()` devuelve `true` durante una partida.
+
+Comprueba `AzerothTicTacToeAPI.version == 1` antes de usarla.
 
 ---
 

@@ -50,6 +50,11 @@ local ADJACENT = {
 -- ido), la partida caduca: nadie gana ni pierde. L["RULES"] dice "5 minutos".
 local TURN_TIMEOUT = 300
 
+-- Rival IA (Core/AI.lua). Lleva el nombre del chatbot del mismo autor: sale en
+-- el historial y en Rivales, y le hace promoción.
+local AI_NAME = "Azeroth AI"
+local AI_DELAY = 0.8 -- segundos que "piensa" antes de mover
+
 -- Ajustes del panel de opciones (UI/Options.lua), en ATT_Data.settings
 local DEFAULTS = { minimap = true, sound = true, challenges = true, scale = 1 }
 ns.DEFAULTS = DEFAULTS
@@ -67,6 +72,7 @@ ATT.selected = nil     -- ficha elegida para mover
 ATT.paidSent = {}      -- [rival] = importe del aviso de pago que espera su respuesta
 ATT.paidRequest = nil  -- aviso de pago del rival que espera la mía
 ATT.cells = {}
+ATT.vsAI = false       -- la partida en curso es contra la IA: sin apuesta ni mensajes
 
 -- Variables persistentes: se inicializan en PLAYER_LOGIN. Aquí todavía no
 -- existen; el cliente carga las SavedVariables después de ejecutar este archivo.
@@ -196,6 +202,8 @@ function ATT:ApplySettings()
 end
 
 function ATT:SendMessage(message, target)
+    -- A la IA no se le manda nada: no es un jugador
+    if self.vsAI and target == self.opponent then return end
     C_ChatInfo.SendAddonMessage(self.prefix, message, "WHISPER", target)
 end
 
@@ -247,6 +255,7 @@ function ATT:PLAYER_LOGIN()
     self:CreateMinimapIcon()
     self.optionsID = ns.CreateOptions(self, {
         { "/ttt", L["CMD_DESC_OPEN"] },
+        { Command(L["CMD_AI"]), L["CMD_DESC_AI"] },
         { L["USAGE_INVITE"], L["CMD_DESC_CHALLENGE"] },
         { Command(L["CMD_ACCEPT"]), L["CMD_DESC_ACCEPT"] },
         { Command(L["CMD_CANCEL"]), L["CMD_DESC_CANCEL"] },
@@ -585,6 +594,18 @@ function ATT:CreateRankingFrame()
     dealHeader:SetPoint("LEFT", dealIcon, "RIGHT", 5, 0)
     dealHeader:SetText(L["NEW_GAME"])
 
+    -- Sin nadie con quien jugar: contra la IA, en la misma fila del título
+    local aiBtn = CreateFrame("Button", nil, deal, "UIPanelButtonTemplate")
+    aiBtn:SetSize(120, 20)
+    aiBtn:SetPoint("TOPRIGHT", -10, -5)
+    aiBtn:SetText(L["PLAY_AI"])
+    aiBtn:SetNormalFontObject("GameFontNormalSmall")
+    AddTip(aiBtn, L["PLAY_AI_TOOLTIP"])
+    aiBtn:SetScript("OnClick", function()
+        ATT:StartAIGame()
+        ATT:PlaySound(SND_CLICK)
+    end)
+
     -- Nombre: texto de ejemplo gris que se borra al escribir
     local nameBox = CreateFrame("EditBox", "ATT_NameInput", deal, "InputBoxTemplate")
     nameBox:SetSize(110, 20)
@@ -805,6 +826,7 @@ function ATT:HandleSlashCommand(msg)
         if self.optionsID then Settings.OpenToCategory(self.optionsID) end
         print(L["USAGE"])
         print(L["USAGE_INVITE"])
+        print(Command(L["CMD_AI"]))
         print(Command(L["CMD_ACCEPT"]))
         print(Command(L["CMD_CANCEL"]))
         print(Command(L["CMD_ACCEPT"], L["CMD_PAID"]))
@@ -814,7 +836,10 @@ function ATT:HandleSlashCommand(msg)
 
     local cmd = string.lower(msg)
 
-    if IsCommand(cmd, L["CMD_ACCEPT"], "accept") then
+    if IsCommand(cmd, L["CMD_AI"], "ai") then
+        self:StartAIGame()
+        return
+    elseif IsCommand(cmd, L["CMD_ACCEPT"], "accept") then
         self:AcceptInvite()
         return
     elseif IsCommand(cmd, L["CMD_CANCEL"], "cancel") then
@@ -946,7 +971,9 @@ end
 
 function ATT:ShowGameButtons(shown)
     if self.SurrenderButton then self.SurrenderButton:SetShown(shown) end
-    if self.DrawButton then self.DrawButton:SetShown(shown) end
+    -- La IA no acepta tablas: no hay nada en juego
+    if self.DrawButton then self.DrawButton:SetShown(shown and not self.vsAI) end
+    if self.AIButton then self.AIButton:SetShown(not shown) end
     self:UpdateDrawButton()
     self:UpdateRematchButton()
 end
@@ -979,6 +1006,10 @@ end
 function ATT:Rematch()
     local rival = self.lastRival
     if self.gameActive or not rival then return end
+    if self.lastVsAI then
+        self:StartAIGame()
+        return
+    end
     if self.pendingInvite and SameName(self.pendingInvite.host, rival) then
         self:AcceptInvite()
     else
@@ -1162,7 +1193,7 @@ end
 -----------------------------------------
 -- Solo cuenta el turno del rival: el mío lo vigila su cliente
 function ATT:CheckTimeout(now)
-    if not self.gameActive or self.isMyTurn then return end
+    if not self.gameActive or self.isMyTurn or self.vsAI then return end
     local left = TURN_TIMEOUT - (now - self.waitingSince)
     if left > 0 then
         self:UpdateTurnText(math.ceil(left))
@@ -1195,6 +1226,48 @@ function ATT:StartGame(opponent, gold, iAmHost, iStart)
     print("|cffffd700[ATT]: " .. L["GAME_STARTED"]:format(cleanOpponent) .. "|r")
     print("|cffffd700[ATT]: " .. L["COIN_TOSS"]:format(iStart and GetMyName() or cleanOpponent) .. "|r")
 end
+
+-----------------------------------------
+-- PARTIDA CONTRA LA IA
+-----------------------------------------
+-- Sin apuesta y sin mensajes: todo pasa en este cliente. true si empieza.
+function ATT:StartAIGame()
+    if self.gameActive then
+        print("|cffff0000[ATT]: " .. L["FINISH_BEFORE_CHALLENGE"] .. "|r")
+        return false
+    end
+    self.vsAI = true
+    self:StartGame(AI_NAME, 0, true, math.random(2) == 1)
+    print("|cff00ccff" .. AI_NAME .. ":|r " .. L["AI_HELLO"])
+    -- Promoción del chatbot, solo a quien aún no lo tiene
+    if not (C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded("AzerothAI")) then
+        print("|cff888888" .. L["AI_PROMO"] .. "|r")
+    end
+    if not self.isMyTurn then self:ScheduleAIMove() end
+    return true
+end
+
+function ATT:ScheduleAIMove()
+    C_Timer.After(AI_DELAY, function()
+        -- Rendirse o empezar otra partida mientras "piensa" anula este turno
+        if not (ATT.gameActive and ATT.vsAI) or ATT.isMyTurn then return end
+        local faction = ATT:OpponentFaction()
+        local from, to = ns.AIMove(ATT.board, faction, ATT:MyFaction(), ADJACENT, PIECES)
+        if not to then return end -- no pasa: con 3+3 fichas siempre hay jugada
+        ATT:ApplyMove(faction, from, to)
+        if ATT:CheckWinner(false) then return end
+        ATT:SetTurn(true)
+        ATT:PlaySound(SND_CLICK)
+    end)
+end
+
+-- API pública (versión 1), para otros addons como Azeroth AI
+AzerothTicTacToeAPI = {
+    version = 1,
+    -- Abre el tablero contra la IA. false si ya hay una partida en curso.
+    PlayVsAI = function() return ATT:StartAIGame() end,
+    IsPlaying = function() return ATT.gameActive end,
+}
 
 -----------------------------------------
 -- CREAR INTERFAZ (GOBLIN STYLE)
@@ -1299,6 +1372,15 @@ function ATT:CreateMainFrame()
     AddTooltip(rematch, L["REMATCH_TOOLTIP"])
     rematch:Hide()
     self.RematchButton = rematch
+
+    -- Contra la IA, solo sin partida: a la izquierda de Revancha, sin pisarla
+    local ai = CreateFrame("Button", "ATT_AIButton", frame, "UIPanelButtonTemplate")
+    ai:SetSize(115, 24)
+    ai:SetPoint("BOTTOMLEFT", 20, 18)
+    ai:SetText(L["PLAY_AI"])
+    ai:SetScript("OnClick", function() ATT:StartAIGame() end)
+    AddTooltip(ai, L["PLAY_AI_TOOLTIP"])
+    self.AIButton = ai
 end
 
 -----------------------------------------
@@ -1416,7 +1498,7 @@ function ATT:PlayMove(from, to)
     self:SendMessage("MOVE:" .. to .. ":" .. faction .. ":" .. (from or 0), self.opponent)
 
     -- Acabo de mover yo: si esto cierra la partida, he ganado yo
-    self:CheckWinner(true)
+    if not self:CheckWinner(true) and self.vsAI then self:ScheduleAIMove() end
 end
 
 function ATT:SetCellIcon(index, texture)
@@ -1464,12 +1546,15 @@ function ATT:EndGame(result)
     self.gameActive = false
     -- Para la revancha; el anfitrión deja de serlo hasta que retan otra vez
     self.lastRival, self.lastBet, self.isHost = rival, gold, false
+    -- Contra la IA cuenta en el historial y en Rivales, no en el ranking de personajes
+    local vsAI = self.vsAI
+    self.lastVsAI, self.vsAI = vsAI, false
     self:Select(nil)
 
     if result == "W" then
         print("|cffffd700[ATT]: " .. L["VICTORY"] .. "|r")
         self:PlaySound(SND_WIN)
-        ATT_Data.rankings[myName] = (ATT_Data.rankings[myName] or 0) + 1
+        if not vsAI then ATT_Data.rankings[myName] = (ATT_Data.rankings[myName] or 0) + 1 end
 
         if gold > 0 and rival then
             ATT_Data.debts[rival] = (ATT_Data.debts[rival] or 0) + gold
@@ -1478,7 +1563,7 @@ function ATT:EndGame(result)
         end
     elseif result == "L" then
         print("|cffff0000[ATT]: " .. L["DEFEAT"] .. "|r")
-        ATT_Data.losses[myName] = (ATT_Data.losses[myName] or 0) + 1
+        if not vsAI then ATT_Data.losses[myName] = (ATT_Data.losses[myName] or 0) + 1 end
         self:PlaySound(SND_LOSE)
         if gold > 0 and rival then
             ATT_Data.debts[rival] = (ATT_Data.debts[rival] or 0) - gold
