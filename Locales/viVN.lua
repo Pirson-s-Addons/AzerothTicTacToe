@@ -145,6 +145,7 @@ L["GAME_EXPIRED"] = "%s đã không đi quân trong %d phút. Trận đã hết 
 L["GAME_EXPIRED_YOU"] = "Bạn đã không đi quân kịp. Trận với %s đã hết hạn: không ai thắng hay thua."
 
 -- 1.04: rival IA
+L["PLAY_AI"] = "đấu với Azeroth AI"
 L["CMD_AI"] = "ai"
 L["PLAY_AI_TOOLTIP"] = "Chơi với Azeroth AI, máy tính. Không cược: chỉ tính trong Lịch sử và Đối thủ."
 L["CMD_DESC_AI"] = "Bắt đầu ván đấu với Azeroth AI, máy tính."

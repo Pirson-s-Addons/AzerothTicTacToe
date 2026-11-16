@@ -145,6 +145,7 @@ L["GAME_EXPIRED"] = "%s n'a pas joué depuis %d minutes. La partie a expiré : p
 L["GAME_EXPIRED_YOU"] = "Vous n'avez pas joué à temps. La partie contre %s a expiré : personne ne gagne ni ne perd."
 
 -- 1.04: rival IA
+L["PLAY_AI"] = "contre Azeroth AI"
 L["CMD_AI"] = "ia"
 L["PLAY_AI_TOOLTIP"] = "Jouez contre Azeroth AI, l'ordinateur. Sans mise : la partie compte seulement dans l'Historique et les Rivaux."
 L["CMD_DESC_AI"] = "Lance une partie contre Azeroth AI, l'ordinateur."

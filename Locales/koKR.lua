@@ -145,6 +145,7 @@ L["GAME_EXPIRED"] = "%s님이 %d분 동안 두지 않았습니다. 게임이 만
 L["GAME_EXPIRED_YOU"] = "제시간에 두지 않았습니다. %s님과의 게임이 만료되었습니다: 승자도 패자도 없습니다."
 
 -- 1.04: rival IA
+L["PLAY_AI"] = "Azeroth AI와 대결"
 L["CMD_AI"] = "ai"
 L["PLAY_AI_TOOLTIP"] = "컴퓨터인 Azeroth AI와 대결합니다. 내기 없음: 기록과 라이벌에만 반영됩니다."
 L["CMD_DESC_AI"] = "컴퓨터인 Azeroth AI와 게임을 시작합니다."

@@ -145,6 +145,7 @@ L["GAME_EXPIRED"] = "%s har inte gjort något drag på %d minuter. Spelet har g�
 L["GAME_EXPIRED_YOU"] = "Du gjorde inte ditt drag i tid. Spelet mot %s har gått ut: ingen vinner eller förlorar."
 
 -- 1.04: rival IA
+L["PLAY_AI"] = "mot Azeroth AI"
 L["CMD_AI"] = "ai"
 L["PLAY_AI_TOOLTIP"] = "Spela mot Azeroth AI, datorn. Ingen insats: räknas bara i Historik och Rivaler."
 L["CMD_DESC_AI"] = "Startar ett parti mot Azeroth AI, datorn."

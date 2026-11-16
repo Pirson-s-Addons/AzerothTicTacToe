@@ -145,6 +145,7 @@ L["GAME_EXPIRED"] = "%s %d dakikadır hamle yapmadı. Oyunun süresi doldu: kims
 L["GAME_EXPIRED_YOU"] = "Zamanında hamle yapmadın. %s ile olan oyunun süresi doldu: kimse kazanmaz ya da kaybetmez."
 
 -- 1.04: rival IA
+L["PLAY_AI"] = "Azeroth AI'ya karşı"
 L["CMD_AI"] = "ai"
 L["PLAY_AI_TOOLTIP"] = "Bilgisayar Azeroth AI'a karşı oyna. Bahis yok: sadece Geçmiş ve Rakipler'de sayılır."
 L["CMD_DESC_AI"] = "Bilgisayar Azeroth AI'a karşı bir oyun başlatır."

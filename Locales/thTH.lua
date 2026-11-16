@@ -145,6 +145,7 @@ L["GAME_EXPIRED"] = "%s ไม่ได้เดินมา %d นาทีแ�
 L["GAME_EXPIRED_YOU"] = "คุณไม่ได้เดินทันเวลา เกมกับ %s หมดเวลา: ไม่มีใครชนะหรือแพ้"
 
 -- 1.04: rival IA
+L["PLAY_AI"] = "เล่นกับ Azeroth AI"
 L["CMD_AI"] = "ai"
 L["PLAY_AI_TOOLTIP"] = "เล่นกับ Azeroth AI คอมพิวเตอร์ ไม่มีเดิมพัน: นับเฉพาะในประวัติและคู่แข่ง"
 L["CMD_DESC_AI"] = "เริ่มเกมกับ Azeroth AI คอมพิวเตอร์"

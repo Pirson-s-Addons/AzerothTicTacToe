@@ -145,6 +145,7 @@ L["GAME_EXPIRED"] = "%s 已 %d 分钟未走棋。游戏已过期：不分胜负�
 L["GAME_EXPIRED_YOU"] = "你没有及时走棋。与 %s 的游戏已过期：不分胜负。"
 
 -- 1.04: rival IA
+L["PLAY_AI"] = "对战 Azeroth AI"
 L["CMD_AI"] = "ai"
 L["PLAY_AI_TOOLTIP"] = "与电脑 Azeroth AI 对战。不下注：只计入历史和对手。"
 L["CMD_DESC_AI"] = "开始一局与电脑 Azeroth AI 的对战。"

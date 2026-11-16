@@ -145,6 +145,7 @@ L["GAME_EXPIRED"] = "لم يتحرك %s منذ %d دقائق. انتهت صلا�
 L["GAME_EXPIRED_YOU"] = "لم تتحرك في الوقت المحدد. انتهت صلاحية اللعبة ضد %s: لا فائز ولا خاسر."
 
 -- 1.04: rival IA
+L["PLAY_AI"] = "ضد Azeroth AI"
 L["CMD_AI"] = "ai"
 L["PLAY_AI_TOOLTIP"] = "العب ضد Azeroth AI، الحاسوب. بلا رهان: تُحتسب فقط في السجل والمنافسين."
 L["CMD_DESC_AI"] = "يبدأ مباراة ضد Azeroth AI، الحاسوب."

@@ -145,6 +145,7 @@ L["GAME_EXPIRED"] = "%s netáhl už %d minut. Hra vypršela: nikdo nevyhrává a
 L["GAME_EXPIRED_YOU"] = "Netáhl jsi včas. Hra s %s vypršela: nikdo nevyhrává ani neprohrává."
 
 -- 1.04: rival IA
+L["PLAY_AI"] = "proti Azeroth AI"
 L["CMD_AI"] = "ai"
 L["PLAY_AI_TOOLTIP"] = "Hraj proti Azeroth AI, počítači. Bez sázky: počítá se jen v Historii a Soupeřích."
 L["CMD_DESC_AI"] = "Začne hru proti Azeroth AI, počítači."
