@@ -71,7 +71,7 @@ Los comandos van en el idioma de tu cliente; los de inglés (`accept`, `cancel`,
 Instálalo desde [CurseForge](https://www.curseforge.com/wow/addons/azeroth-tic-tac-toe), o a mano:
 
 1. Descarga el zip de la [última release](https://github.com/Pirson-s-Addons/AzerothTicTacToe/releases/latest).
-2. Extrae la carpeta `AzerothTicTacToe` en `World of Warcraft/_classic_beta_/Interface/AddOns/`.
+2. Extrae la carpeta `AzerothTicTacToe` en `World of Warcraft/_forever_/Interface/AddOns/`.
 3. Reinicia el juego y activa el addon.
 
 Solo se carga en WoW Forever: su único `.toc` es `AzerothTicTacToe_Camelot.toc` (`Camelot` es el game type de Forever), así que ningún otro cliente lo muestra. Los dos jugadores necesitan el addon.
