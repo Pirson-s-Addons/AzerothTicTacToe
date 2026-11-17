@@ -1,42 +1,32 @@
-<h1 align="center">Azeroth TicTacToe</h1>
+<p align="center"><a href="https://www.curseforge.com/wow/addons/azeroth-tic-tac-toe"><img src="https://raw.githubusercontent.com/Pirson-s-Addons/.github/main/profile/assets/readme-tt-es.svg" width="100%" alt="Azeroth Tic-Tac-Toe"/></a></p>
+
+<p align="center"><a href="README.md">English</a> · <b>Español</b></p>
 
 <p align="center">
-  <b>Juega al 3 en raya contra otro jugador dentro del juego, apostando oro, con clasificación permanente, para World of Warcraft: Forever</b>
+<a href="https://www.curseforge.com/wow/addons/azeroth-tic-tac-toe"><b>CurseForge</b></a> ·
+<a href="https://github.com/Pirson-s-Addons/AzerothTicTacToe/releases/latest"><b>Descargar</b></a>
 </p>
 
-<p align="center">
-<a href="https://github.com/Pirson-s-Addons/AzerothTicTacToe/releases/latest">
-<img src="https://img.shields.io/github/v/release/Pirson-s-Addons/AzerothTicTacToe?style=for-the-badge&color=A78BFA">
-</a>
-<img src="https://img.shields.io/badge/WoW_Forever-1.60.1-C4B5FD?style=for-the-badge">
-<a href="LICENSE">
-<img src="https://img.shields.io/badge/License-MIT-E9D5FF?style=for-the-badge">
-</a>
-</p>
-
-<p align="center">
-<a href="README.md">🇬🇧 English</a>
-</p>
-
----
-
-## 📸 Capturas
+## Capturas
 
 <table>
 <tr>
-<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/705/tablero-apuestas-png.png" alt="Betting"><br><sub>Apuesta</sub></td>
-<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/709/tablero-png.png" alt="Game board"><br><sub>Tablero</sub></td>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/709/tablero-png.png" alt="Tablero"><br><sub>Tablero</sub></td>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/704/tablero-1-png.png" alt="Una victoria"><br><sub>Una victoria</sub></td>
 </tr>
 <tr>
-<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/704/tablero-1-png.png" alt="A win"><br><sub>Partida ganada</sub></td>
-<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/707/options-menu-png.png" alt="Options"><br><sub>Opciones</sub></td>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/2026/904/screenshot_1-png.png" alt="Reta a alguien apostando oro"><br><sub>Reta a alguien apostando oro</sub></td>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/2026/903/screenshot_2-png.png" alt="Tu historial contra cada jugador"><br><sub>Tu historial contra cada jugador</sub></td>
 </tr>
 <tr>
-<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/706/options-menu-config-png.png" alt="Settings"><br><sub>Ajustes</sub></td>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/2026/902/screenshot_3-png.png" alt="Quién debe a quién"><br><sub>Quién debe a quién</sub></td>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/2026/901/screenshot_4-png.png" alt="Tus últimas 50 partidas"><br><sub>Tus últimas 50 partidas</sub></td>
+</tr>
+<tr>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/707/options-menu-png.png" alt="Opciones"><br><sub>Opciones</sub></td>
+<td align="center" width="50%"><img src="https://media.forgecdn.net/attachments/1975/706/options-menu-config-png.png" alt="Ajustes"><br><sub>Ajustes</sub></td>
 </tr>
 </table>
-
----
 
 ## Qué hace
 
@@ -66,16 +56,6 @@
 - **Opciones → AddOns → Azeroth TicTacToe**: página Acerca de con las reglas, enlaces y comandos, y página **General** con botón del minimapa, sonidos, aceptar retos y tamaño del tablero.
 - Traducido a 20 idiomas.
 
-## Instalación
-
-Instálalo desde [CurseForge](https://www.curseforge.com/wow/addons/azeroth-tic-tac-toe), o a mano:
-
-1. Descarga el zip de la [última release](https://github.com/Pirson-s-Addons/AzerothTicTacToe/releases/latest).
-2. Extrae la carpeta `AzerothTicTacToe` en `World of Warcraft/_classic_beta_/Interface/AddOns/`.
-3. Reinicia el juego y activa el addon.
-
-Solo se carga en WoW Forever: su único `.toc` es `AzerothTicTacToe_Camelot.toc` (`Camelot` es el game type de Forever), así que ningún otro cliente lo muestra. Los dos jugadores necesitan el addon.
-
 ## Uso
 
 Los comandos van en el idioma de tu cliente; los de inglés (`accept`, `cancel`, `paid`) valen siempre.
@@ -86,8 +66,20 @@ Los comandos van en el idioma de tu cliente; los de inglés (`accept`, `cancel`,
 - `/ttt aceptar` / `/ttt cancelar` acepta o rechaza el reto pendiente.
 - `/ttt aceptar pagado` / `/ttt cancelar pagado` confirma o niega que una deuda se ha pagado.
 
+## Instalación
 
-## API para autores de addons
+Instálalo desde [CurseForge](https://www.curseforge.com/wow/addons/azeroth-tic-tac-toe), o a mano:
+
+1. Descarga el zip de la [última release](https://github.com/Pirson-s-Addons/AzerothTicTacToe/releases/latest).
+2. Extrae la carpeta `AzerothTicTacToe` en `World of Warcraft/_classic_beta_/Interface/AddOns/`.
+3. Reinicia el juego y activa el addon.
+
+Solo se carga en WoW Forever: su único `.toc` es `AzerothTicTacToe_Camelot.toc` (`Camelot` es el game type de Forever), así que ningún otro cliente lo muestra. Los dos jugadores necesitan el addon.
+
+## Para autores de addons
+
+<details>
+<summary><b>API pública</b></summary>
 
 Global `AzerothTicTacToeAPI` (`version = 1`):
 
@@ -96,6 +88,9 @@ Global `AzerothTicTacToeAPI` (`version = 1`):
 
 Comprueba `AzerothTicTacToeAPI.version == 1` antes de usarla.
 
----
-
 **Autor**: Pirson · [GitHub](https://github.com/Pirson-s-Addons) · [CurseForge](https://www.curseforge.com/members/pirson/projects) · Licencia MIT
+</details>
+
+<br/>
+
+<p align="center"><a href="https://github.com/Pirson-s-Addons"><img src="https://raw.githubusercontent.com/Pirson-s-Addons/.github/main/profile/assets/readme-footer-es.svg" width="100%" alt="Parte de Pirson's Addons. Ver todos los addons."/></a></p>
