@@ -1586,3 +1586,9 @@ function ATT:EndGame(result)
         self:UpdateRankingData()
     end
 end
+
+-- Menu de addons del minimapa (## AddonCompartmentFunc del .toc): lo mismo que el comando
+function AzerothTicTacToe_OnAddonCompartmentClick()
+    local open = SlashCmdList and SlashCmdList.TTT
+    if open then open("") end
+end
