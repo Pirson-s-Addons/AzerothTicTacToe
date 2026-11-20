@@ -554,6 +554,7 @@ function ATT:CreateRankingFrame()
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
     frame:SetFrameStrata("DIALOG")
     if UISpecialFrames then table.insert(UISpecialFrames, "ATT_RankingFrame") end -- Escape lo cierra
+    ns.GamepadNavFor(frame) -- con mando, sus botones son de la ventana (UI/GamepadNav.lua)
 
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
     frame.bg:SetAllPoints()
@@ -1289,6 +1290,7 @@ function ATT:CreateMainFrame()
     frame:EnableMouse(true)
     frame:Hide()
     self.MainFrame = frame
+    ns.GamepadNavFor(frame) -- con mando, sus botones son de la ventana (UI/GamepadNav.lua)
 
     -- Área de arrastre (Solo el título)
     local dragFrame = CreateFrame("Frame", nil, frame)

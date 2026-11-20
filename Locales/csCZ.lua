@@ -151,3 +151,12 @@ L["PLAY_AI_TOOLTIP"] = "Hraj proti Azeroth AI, počítači. Bez sázky: počít�
 L["CMD_DESC_AI"] = "Začne hru proti Azeroth AI, počítači."
 L["AI_HELLO"] = "Uvidíme, co v tobě je! Ať vyhraje nejlepší goblin."
 L["AI_PROMO"] = "Psst: Azeroth AI je také doplněk-asistent ve hře, který ti řekne, kde levelovat, jaký dungeon dát a mnohem víc. Hledej ho na CurseForge."
+
+-- Navegacion con mando (UI/GamepadNav.lua)
+L["PAD_MOVE"] = "Pohyb"
+L["PAD_SELECT"] = "Vybrat"
+L["PAD_TOGGLE"] = "Zaškrtnout"
+L["PAD_CLOSE"] = "Zavřít"
+L["PAD_BACK"] = "Zpět"
+L["PAD_CLOSE_MENU"] = "Zavřít nabídku"
+L["PAD_SCROLL"] = "Posunout"

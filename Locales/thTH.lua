@@ -151,3 +151,12 @@ L["PLAY_AI_TOOLTIP"] = "เล่นกับ Azeroth AI คอมพิวเ�
 L["CMD_DESC_AI"] = "เริ่มเกมกับ Azeroth AI คอมพิวเตอร์"
 L["AI_HELLO"] = "มาดูกันว่าเจ้ามีดีแค่ไหน! ขอให้กอบลินที่เก่งที่สุดชนะ"
 L["AI_PROMO"] = "กระซิบ: Azeroth AI ยังเป็นแอดออนผู้ช่วยในเกมที่บอกว่าควรเลเวลที่ไหน ลงดันเจี้ยนไหน และอีกมากมาย ค้นหาได้ใน CurseForge"
+
+-- Navegacion con mando (UI/GamepadNav.lua)
+L["PAD_MOVE"] = "เคลื่อนที่"
+L["PAD_SELECT"] = "เลือก"
+L["PAD_TOGGLE"] = "ติ๊ก"
+L["PAD_CLOSE"] = "ปิด"
+L["PAD_BACK"] = "ย้อนกลับ"
+L["PAD_CLOSE_MENU"] = "ปิดเมนู"
+L["PAD_SCROLL"] = "เลื่อน"

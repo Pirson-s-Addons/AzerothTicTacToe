@@ -151,3 +151,12 @@ L["PLAY_AI_TOOLTIP"] = "Juega contra Azeroth AI, el ordenador. Sin apuesta: solo
 L["CMD_DESC_AI"] = "Empieza una partida contra Azeroth AI, el ordenador."
 L["AI_HELLO"] = "¡A ver de qué pasta estás hecho! Que gane el mejor goblin."
 L["AI_PROMO"] = "Psst: Azeroth AI también es un addon asistente dentro del juego que te dice dónde subir de nivel, qué mazmorra hacer y mucho más. Búscalo en CurseForge."
+
+-- Navegacion con mando (UI/GamepadNav.lua)
+L["PAD_MOVE"] = "Moverse"
+L["PAD_SELECT"] = "Elegir"
+L["PAD_TOGGLE"] = "Marcar"
+L["PAD_CLOSE"] = "Cerrar"
+L["PAD_BACK"] = "Atrás"
+L["PAD_CLOSE_MENU"] = "Cerrar menú"
+L["PAD_SCROLL"] = "Desplazar"

@@ -94,7 +94,7 @@
 ## Notes-viVN: |cFF33CCFFChơi cờ ca-rô 3x3 với người chơi khác, cược bằng vàng.|r
 
 ## Author: Pirson
-## Version: 1.05
+## Version: 1.06
 
 ## SavedVariables: ATT_Data
 ## X-Curse-Project-ID: 1476012
@@ -124,6 +124,7 @@ Locales/hiIN.lua
 Locales/thTH.lua
 Locales/viVN.lua
 Locales/csCZ.lua
+UI/GamepadNav.lua
 Core/AI.lua
 Core/AzerothTicTacToe.lua
 UI/About.lua

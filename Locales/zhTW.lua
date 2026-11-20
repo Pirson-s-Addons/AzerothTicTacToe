@@ -151,3 +151,12 @@ L["PLAY_AI_TOOLTIP"] = "與電腦 Azeroth AI 對戰。不下注：只計入歷�
 L["CMD_DESC_AI"] = "開始一局與電腦 Azeroth AI 的對戰。"
 L["AI_HELLO"] = "讓我看看你的本事！願最強的哥布林獲勝。"
 L["AI_PROMO"] = "悄悄告訴你：Azeroth AI 也是一個遊戲內助手插件，告訴你去哪升級、打哪個地城等等。在 CurseForge 上搜尋它。"
+
+-- Navegacion con mando (UI/GamepadNav.lua)
+L["PAD_MOVE"] = "移動"
+L["PAD_SELECT"] = "選擇"
+L["PAD_TOGGLE"] = "勾選"
+L["PAD_CLOSE"] = "關閉"
+L["PAD_BACK"] = "返回"
+L["PAD_CLOSE_MENU"] = "關閉選單"
+L["PAD_SCROLL"] = "捲動"

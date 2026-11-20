@@ -151,3 +151,12 @@ L["PLAY_AI_TOOLTIP"] = "Bilgisayar Azeroth AI'a karşı oyna. Bahis yok: sadece 
 L["CMD_DESC_AI"] = "Bilgisayar Azeroth AI'a karşı bir oyun başlatır."
 L["AI_HELLO"] = "Bakalım neler yapabiliyorsun! En iyi goblin kazansın."
 L["AI_PROMO"] = "Psst: Azeroth AI aynı zamanda nerede seviye atlayacağını, hangi zindana gireceğini ve çok daha fazlasını söyleyen bir oyun içi asistan eklentisidir. CurseForge'da ara."
+
+-- Navegacion con mando (UI/GamepadNav.lua)
+L["PAD_MOVE"] = "Hareket"
+L["PAD_SELECT"] = "Seç"
+L["PAD_TOGGLE"] = "İşaretle"
+L["PAD_CLOSE"] = "Kapat"
+L["PAD_BACK"] = "Geri"
+L["PAD_CLOSE_MENU"] = "Menüyü kapat"
+L["PAD_SCROLL"] = "Kaydır"

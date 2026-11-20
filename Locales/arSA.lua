@@ -151,3 +151,12 @@ L["PLAY_AI_TOOLTIP"] = "العب ضد Azeroth AI، الحاسوب. بلا رها
 L["CMD_DESC_AI"] = "يبدأ مباراة ضد Azeroth AI، الحاسوب."
 L["AI_HELLO"] = "لنرَ ما لديك! ليفز أفضل غوبلن."
 L["AI_PROMO"] = "همسة: Azeroth AI هو أيضًا إضافة مساعدة داخل اللعبة تخبرك أين ترفع مستواك وأي زنزانة تخوض والمزيد. ابحث عنها في CurseForge."
+
+-- Navegacion con mando (UI/GamepadNav.lua)
+L["PAD_MOVE"] = "تحرك"
+L["PAD_SELECT"] = "اختيار"
+L["PAD_TOGGLE"] = "تحديد"
+L["PAD_CLOSE"] = "إغلاق"
+L["PAD_BACK"] = "رجوع"
+L["PAD_CLOSE_MENU"] = "إغلاق القائمة"
+L["PAD_SCROLL"] = "تمرير"
