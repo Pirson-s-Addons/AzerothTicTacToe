@@ -98,6 +98,7 @@
 
 ## SavedVariables: ATT_Data
 ## X-Curse-Project-ID: 1476012
+## X-Wago-ID: aND9AJ6o
 ## X-License: MIT
 ## X-Copyright: Copyright (c) 2026 Pirson
 ## X-Website: https://github.com/Pirson-s-Addons/AzerothTicTacToe
